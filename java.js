@@ -51,7 +51,8 @@ onAuthStateChanged(auth, (user) => {
 const gradeFixa = {
     "Seg": [
         { turma: "1ª série", disc: "Matemática" }, 
-        { turma: "1ª série", disc: "Matemática" }, // Ajustado para ser Matemática seguida
+        { turma: "1ª série", disc: "Matemática" },
+        { turma: "1ª série", disc: "Ed. Digital" },
         { turma: "2ª série", disc: "Ed. Financeira" }, 
         { turma: "2ª série", disc: "Ed. Financeira" }, 
         { turma: "7º ano", disc: "Matemática" }, 
