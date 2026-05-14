@@ -32,7 +32,7 @@ document.getElementById('btn-logout').onclick = () => signOut(auth);
 // MONITOR DE AUTENTICAÇÃO
 onAuthStateChanged(auth, (user) => {
     // LISTA DE E-MAILS AUTORIZADOS
-    const emailsAutorizados = ["gabrieldasilvalima.pg@gmail.com", "SEU_OUTRO_EMAIL@gmail.com"];
+    const emailsAutorizados = ["limagabrielpg@gmail.com", "silva.lima.gabriel3012@escola.pr.gov.br"];
 
     if (user && emailsAutorizados.includes(user.email)) { 
         loginView.style.display = 'none';
