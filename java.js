@@ -49,7 +49,18 @@ onAuthStateChanged(auth, (user) => {
 });
 
 const gradeFixa = {
-    "Seg": [{ turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Ed. Digital" }, { turma: "2ª série", disc: "Ed. Financeira" }, { turma: "2ª série", disc: "Ed. Financeira" }, { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }],
+    "Seg": [
+        { turma: "1ª série", disc: "Matemática" }, 
+        { turma: "1ª série", disc: "Matemática" }, // Ajustado para ser Matemática seguida
+        { turma: "2ª série", disc: "Ed. Financeira" }, 
+        { turma: "2ª série", disc: "Ed. Financeira" }, 
+        { turma: "7º ano", disc: "Matemática" }, 
+        { turma: "7º ano", disc: "Matemática" }, 
+        { turma: "6º ano", disc: "Matemática" }, 
+        { turma: "8º ano", disc: "Matemática" }, 
+        { turma: "8º ano", disc: "Matemática" }
+    ],
+    // Mantenha o restante dos dias (Ter, Qua, Qui, Sex) igual ao que já está no seu arquivo
     "Ter": [{ turma: "3ª série", disc: "Ed. Financeira" }],
     "Qua": [{ turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }],
     "Qui": [{ turma: "6º ano", disc: "Matemática" }],
