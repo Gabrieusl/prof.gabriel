@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLANEJAMENTO 2026 // PROF. GABRIEL LIMA</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="logo"><strong>PLANEJAMENTO 2026</strong> // PROF. GABRIEL LIMA</div>
+        <nav>
+            <button onclick="showView('calendar')">📅 Calendário</button>
+            <button onclick="showView('table')">📊 Tabela de Planejamento</button>
+        </nav>
+    </header>
+
+    <main>
+        <section id="calendar-view">
+            <div class="calendar-controls">
+                <button id="prevMonth">◀ Anterior</button>
+                <h2 id="monthDisplay">CARREGANDO...</h2>
+                <button id="nextMonth">Próximo ▶</button>
+            </div>
+            <div class="calendar-grid-header">
+                <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+        </section>
+
+        <section id="table-view" style="display:none;">
+            <div class="filters-container">
+                <input type="text" id="searchData" placeholder="Data (DD/MM/AAAA)" oninput="updateTable()">
+                <select id="searchTurma" onchange="updateTable()">
+                    <option value="">Todas as Turmas</option>
+                    <option value="6º ano">6º ano</option>
+                    <option value="7º ano">7º ano</option>
+                    <option value="8º ano">8º ano</option>
+                    <option value="9º ano">9º ano</option>
+                    <option value="1ª série">1ª série</option>
+                    <option value="2ª série">2ª série</option>
+                    <option value="3ª série">3ª série</option>
+                </select>
+                <select id="searchMateria" onchange="updateTable()">
+                    <option value="">Todas as Disciplinas</option>
+                    <option value="Matemática">Matemática</option>
+                    <option value="Ed. Financeira">Ed. Financeira</option>
+                    <option value="Ed. Digital">Ed. Digital</option>
+                    <option value="Recomposição">Recomposição</option>
+                </select>
+            </div>
+            <div class="table-container">
+                <table id="mainTable">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Turma</th>
+                            <th>Disciplina</th>
+                            <th>Conteúdo</th>
+                            <th>Anexo</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalDateTitle">Planejamento</h3>
+            <div id="classInputs"></div>
+            <div class="modal-buttons">
+                <button onclick="closeModal()">Cancelar</button>
+                <button class="save-btn" onclick="saveData()">Salvar na Nuvem</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module" src="java.js"></script>
+</body>
+</html>

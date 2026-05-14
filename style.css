@@ -1,0 +1,41 @@
+:root {
+    --green: #2ecc71; --orange: #f39c12; --red: #e74c3c;
+    --dark: #2c3e50; --blue: #3498db; --gray: #ecf0f1;
+}
+body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
+header { background: var(--dark); color: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; }
+nav button { background: #34495e; border: none; color: white; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-left: 5px; }
+.calendar-controls { display: flex; justify-content: center; align-items: center; gap: 30px; padding: 20px; }
+.calendar-grid-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); max-width: 1100px; margin: 0 auto; gap: 8px; }
+.calendar-grid-header div { text-align: center; font-weight: bold; padding: 10px; color: #7f8c8d; }
+
+.day-card { 
+    height: 110px; padding: 10px; border-radius: 8px; cursor: pointer; 
+    display: flex; flex-direction: column; justify-content: space-between; 
+    transition: 0.2s; border: 1px solid rgba(0,0,0,0.05); 
+}
+
+/* Cores de Status - Preenchimento Total */
+.status-empty { background-color: var(--red); color: white; }
+.status-partial { background-color: var(--orange); color: white; }
+.status-full { background-color: var(--green); color: white; }
+.status-weekend { background-color: #dcdde1; color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
+.status-holiday { background-color: var(--blue); color: white; cursor: not-allowed; }
+.holiday-name { font-size: 0.65rem; text-align: center; line-height: 1.1; font-weight: bold; }
+
+.filters-container { max-width: 1100px; margin: 20px auto; display: flex; gap: 10px; padding: 0 10px; }
+.filters-container input, .filters-container select { padding: 10px; border-radius: 5px; border: 1px solid #ddd; flex: 1; }
+.table-container { max-width: 1100px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+th { background: #f8f9fa; }
+.btn-link { display: inline-block; padding: 5px 10px; background-color: var(--blue); color: white; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
+
+/* Modal em Grade (Grid) */
+.modal { display: none; position: fixed; top:0; left:0; width: 100%; height:100%; background: rgba(0,0,0,0.7); z-index: 100; }
+.modal-content { background: white; margin: 2% auto; padding: 25px; width: 95%; max-width: 1200px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
+#classInputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; margin: 20px 0; }
+.class-edit-row { background: #f9f9f9; padding: 15px; border-radius: 8px; border-top: 4px solid var(--dark); }
+.class-edit-row input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+.modal-buttons { display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #eee; padding-top: 15px; }
+.save-btn { background: var(--green); color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
