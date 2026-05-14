@@ -31,16 +31,15 @@ document.getElementById('btn-logout').onclick = () => signOut(auth);
 
 // MONITOR DE AUTENTICAÇÃO
 onAuthStateChanged(auth, (user) => {
-    // LISTA DE E-MAILS AUTORIZADOS
     const emailsAutorizados = ["limagabrielpg@gmail.com", "silva.lima.gabriel3012@escola.pr.gov.br"];
 
-    if (user && emailsAutorizados.includes(user.email)) { 
+    if (user && emailsAutorizados.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) { 
         loginView.style.display = 'none';
         appContent.style.display = 'block';
         mainNav.style.display = 'flex';
         carregarDados();
     } else if (user) {
-        alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
+        alert("Acesso negado para o e-mail: " + user.email); // Isso vai nos mostrar qual e-mail está tentando entrar
         signOut(auth);
     } else {
         loginView.style.display = 'block';
