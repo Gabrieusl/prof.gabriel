@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PLANEJAMENTO 2026 // PROF. GABRIEL LIMA</title>
+    <title>PLANEJAMENTO 2026</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <header>
-        <div class="logo"><strong>PLANEJAMENTO 2026</strong> // PROF. GABRIEL LIMA</div>
+        <div class="logo"><strong>PLANEJAMENTO 2026</strong></div>
         <nav id="main-nav" style="display:none;">
             <button onclick="showView('calendar')">📅 Calendário</button>
             <button onclick="showView('table')">📊 Tabela</button>
@@ -17,7 +17,6 @@
     </header>
 
     <main>
-        <!-- TELA DE LOGIN (Aparece primeiro) -->
         <section id="login-view">
             <div style="text-align: center; margin-top: 100px; background: white; padding: 40px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); max-width: 400px; margin-left: auto; margin-right: auto;">
                 <h2>🔒 Acesso Restrito</h2>
@@ -29,7 +28,6 @@
             </div>
         </section>
 
-        <!-- CONTEÚDO PROTEGIDO (Fica escondido até o login) -->
         <section id="app-content" style="display:none;">
             <div id="calendar-view">
                 <div class="calendar-controls">
@@ -45,7 +43,7 @@
 
             <section id="table-view" style="display:none;">
                 <div class="filters-container">
-                    <input type="text" id="searchData" placeholder="Data (DD/MM/AAAA)" oninput="updateTable()">
+                    <input type="date" id="searchData" onchange="updateTable()">
                     <select id="searchTurma" onchange="updateTable()">
                         <option value="">Todas as Turmas</option>
                         <option value="6º ano">6º ano</option>
@@ -55,6 +53,13 @@
                         <option value="1ª série">1ª série</option>
                         <option value="2ª série">2ª série</option>
                         <option value="3ª série">3ª série</option>
+                    </select>
+                    <select id="searchMateria" onchange="updateTable()">
+                        <option value="">Todas as Disciplinas</option>
+                        <option value="Matemática">Matemática</option>
+                        <option value="Ed. Financeira">Ed. Financeira</option>
+                        <option value="Ed. Digital">Ed. Digital</option>
+                        <option value="Recomposição">Recomposição</option>
                     </select>
                 </div>
                 <div class="table-container">
@@ -77,6 +82,8 @@
             </div>
         </div>
     </div>
+
+    <footer>Desenvolvido por Prof. Gabriel</footer>
 
     <script type="module" src="java.js"></script>
 </body>
