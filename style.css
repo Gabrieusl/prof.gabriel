@@ -2,13 +2,13 @@
     --green: #2ecc71; --orange: #f39c12; --red: #e74c3c;
     --dark: #2c3e50; --blue: #3498db; --gray: #ecf0f1;
 }
-body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; }
+body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; min-height: 100vh; }
 header { background: var(--dark); color: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; }
-nav button { background: #34495e; border: none; color: white; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-left: 5px; }
-.calendar-controls { display: flex; justify-content: center; align-items: center; gap: 30px; padding: 20px; }
-.calendar-grid-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); max-width: 1100px; margin: 0 auto; gap: 8px; }
-.calendar-grid-header div { text-align: center; font-weight: bold; padding: 10px; color: #7f8c8d; }
-
+nav button { background: #34495e; border: none; color: white; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-left: 5px; font-weight: bold; }
+.calendar-controls { display: flex; justify-content: center; align-items: center; gap: 30px; padding: 15px; }
+.calendar-grid-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); max-width: 1100px; margin: 0 auto; gap: 6px; width: 95%; }
+.calendar-grid-header div { text-align: center; font-weight:
+                           
 .day-card { 
     height: 110px; padding: 10px; border-radius: 8px; cursor: pointer; 
     display: flex; flex-direction: column; justify-content: space-between; 
