@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+import { getDatabase, ref, set, onValue, push, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -35,6 +35,7 @@ onAuthStateChanged(auth, (user) => {
         appContent.style.display = 'block';
         mainNav.style.display = 'flex';
         carregarDados();
+        carregarAgenda();
     } else if (user) {
         alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
         signOut(auth);
@@ -45,45 +46,27 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// GRADE FIXA TOTALMENTE CORRIGIDA E PADRONIZADA
 const gradeFixa = {
     "Seg": [
-        { turma: "1ª série", disc: "Matemática" }, 
-        { turma: "1ª série", disc: "Matemática" }, 
-        { turma: "1ª série", disc: "Ed. Digital" }, 
-        { turma: "2ª série", disc: "Ed. Financeira" }, 
-        { turma: "2ª série", disc: "Ed. Financeira" }, 
-        { turma: "7º ano", disc: "Matemática" }, 
-        { turma: "7º ano", disc: "Matemática" }, 
-        { turma: "6º ano", disc: "Matemática" }, 
-        { turma: "8º ano", disc: "Matemática" }, 
-        { turma: "8º ano", disc: "Matemática" }
+        { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, 
+        { turma: "1ª série", disc: "Ed. Digital" }, { turma: "2ª série", disc: "Ed. Financeira" }, 
+        { turma: "2ª série", disc: "Ed. Financeira" }, { turma: "7º ano", disc: "Matemática" }, 
+        { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, 
+        { turma: "8º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }
     ],
-    "Ter": [
-        { turma: "3ª série", disc: "Ed. Financeira" }
-    ],
+    "Ter": [{ turma: "3ª série", disc: "Ed. Financeira" }],
     "Qua": [
-        { turma: "9º ano", disc: "Recomposição" }, 
-        { turma: "9º ano", disc: "Recomposição" }, 
-        { turma: "1ª série", disc: "Matemática" }, 
-        { turma: "1ª série", disc: "Matemática" }, 
-        { turma: "7º ano", disc: "Matemática" }, 
-        { turma: "7º ano", disc: "Matemática" }, 
-        { turma: "6º ano", disc: "Recomposição" }, 
-        { turma: "6º ano", disc: "Recomposição" }
+        { turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, 
+        { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, 
+        { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, 
+        { turma: "6º ano", disc: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }
     ],
-    "Qui": [
-        { turma: "6º ano", disc: "Matemática" }
-    ],
+    "Qui": [{ turma: "6º ano", disc: "Matemática" }],
     "Sex": [
-        { turma: "3ª série", disc: "Ed. Financeira" }, 
-        { turma: "1ª série", disc: "Ed. Financeira" }, 
-        { turma: "1ª série", disc: "Ed. Financeira" }, 
-        { turma: "1ª série", disc: "Ed. Digital" }, 
-        { turma: "7º ano", disc: "Matemática" }, 
-        { turma: "6º ano", disc: "Matemática" }, 
-        { turma: "6º ano", disc: "Matemática" }, 
-        { turma: "8º ano", disc: "Matemática" }, 
+        { turma: "3ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Financeira" }, 
+        { turma: "1ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Digital" }, 
+        { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, 
+        { turma: "6º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }, 
         { turma: "8º ano", disc: "Matemática" }
     ]
 };
@@ -93,6 +76,7 @@ const feriados2026 = {
 };
 
 let dadosPlanejamento = {};
+let listaEventos = {};
 let currentMonth = 4; let currentYear = 2026; let selectedDateKey = "";
 
 function carregarDados() {
@@ -103,16 +87,56 @@ function carregarDados() {
     });
 }
 
+// REALTIME PARA COMPONENTE DA AGENDA DE EVENTOS
+function carregarAgenda() {
+    onValue(ref(db, 'eventos_importantes'), (snapshot) => {
+        listaEventos = snapshot.val() || {};
+        const container = document.getElementById('agendaList');
+        container.innerHTML = "";
+        
+        const chaves = Object.keys(listaEventos);
+        if(chaves.length === 0) {
+            container.innerHTML = `<p style="color:#7f8c8d; font-size:0.85rem;">Nenhum evento agendado.</p>`;
+            return;
+        }
+
+        chaves.forEach(key => {
+            const ev = listaEventos[key];
+            container.innerHTML += `
+                <div class="agenda-item">
+                    <strong>📅 ${ev.data}</strong> ${ev.texto}
+                    <button class="btn-del-event" onclick="deletarEventoAgenda('${key}')">✕</button>
+                </div>`;
+        });
+    });
+}
+
+window.adicionarEventoAgenda = () => {
+    const dataInput = document.getElementById('eventDate').value.trim();
+    const textoInput = document.getElementById('eventText').value.trim();
+    if(!dataInput || !textoInput) return alert("Preencha a data e a descrição do marco!");
+    
+    const novoRef = push(ref(db, 'eventos_importantes'));
+    set(novoRef, { data: dataInput, texto: textoInput }).then(() => {
+        document.getElementById('eventDate').value = "";
+        document.getElementById('eventText').value = "";
+    });
+};
+
+window.deletarEventoAgenda = (id) => {
+    if(confirm("Deseja remover este marco da agenda?")) {
+        remove(ref(db, 'eventos_importantes/' + id));
+    }
+};
+
 window.mudarMes = (direcao) => {
     let novoMes = currentMonth + direcao;
     let novoAno = currentYear;
-
     if (novoMes > 11) { novoMes = 0; novoAno++; }
     else if (novoMes < 0) { novoMes = 11; novoAno--; }
 
     if (novoAno === 2026 && novoMes >= 4 && novoMes <= 11) {
-        currentMonth = novoMes;
-        currentYear = novoAno;
+        currentMonth = novoMes; currentYear = novoAno;
         renderCalendar();
     }
 };
@@ -163,7 +187,7 @@ window.openDay = (date, dia) => {
     container.innerHTML = "";
     let aulas = dadosPlanejamento[date] || (gradeFixa[dia] || []).map(g => ({...g, conteudo: "", anexo: ""}));
     aulas.forEach((aula, i) => {
-        container.innerHTML += `<div class="class-edit-row"><strong>${aula.turma} - ${aula.disc}</strong><input type="text" id="c_${i}" value="${aula.conteudo || ''}"><input type="text" id="a_${i}" value="${aula.anexo || ''}"></div>`;
+        container.innerHTML += `<div class="class-edit-row"><strong>${aula.turma} - ${aula.disc}</strong><input type="text" id="c_${i}" value="${aula.conteudo || ''}" placeholder="Conteúdo da aula"><input type="text" id="a_${i}" value="${aula.anexo || ''}" placeholder="Link do anexo (Drive, Video, etc)"></div>`;
     });
     modal.style.display = "block";
 };
@@ -179,21 +203,15 @@ window.saveData = () => {
 
 window.updateTable = () => {
     const tbody = document.getElementById('tableBody'); if(!tbody) return;
-    
     const filtroDataInput = document.getElementById('searchData').value; 
     const fTurma = document.getElementById('searchTurma').value; 
     const fMateria = document.getElementById('searchMateria').value;
-    
-    let dataFiltroFormatada = "";
-    if(filtroDataInput) {
-        dataFiltroFormatada = filtroDataInput.split('-').reverse().join('/');
-    }
+    let dataFiltroFormatada = filtroDataInput ? filtroDataInput.split('-').reverse().join('/') : "";
 
     tbody.innerHTML = "";
     Object.keys(dadosPlanejamento).sort().forEach(date => {
         const dataBR = date.split('-').reverse().join('/');
         dadosPlanejamento[date].forEach(aula => {
-            
             const bateData = dataFiltroFormatada === "" || dataBR === dataFiltroFormatada;
             const bateTurma = fTurma === "" || aula.turma === fTurma;
             const bateMateria = fMateria === "" || aula.disc === fMateria;
@@ -202,9 +220,7 @@ window.updateTable = () => {
                 let anexoDisplay = "";
                 if (aula.anexo && aula.anexo.trim() !== "") {
                     let url = aula.anexo.trim();
-                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-                        url = 'https://' + url;
-                    }
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
                     anexoDisplay = `<a href="${url}" target="_blank" class="btn-link">🔗 Abrir Link</a>`;
                 }
                 tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${anexoDisplay}</td></tr>`;
