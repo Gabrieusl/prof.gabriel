@@ -45,7 +45,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Grade fixa atualizada: 2 aulas consecutivas de Matemática na 1ª série seguidas por Educação Digital
+// Grade fixa corrigida (Linha 62 corrigida de {6º ano: "Recomposição"} para incluir a estrutura certa)
 const gradeFixa = {
     "Seg": [
         { turma: "1ª série", disc: "Matemática" }, 
@@ -60,7 +60,7 @@ const gradeFixa = {
         { turma: "8º ano", disc: "Matemática" }
     ],
     "Ter": [{ turma: "3ª série", disc: "Ed. Financeira" }],
-    "Qua": [{ turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, {6º ano: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }],
+    "Qua": [{ turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }],
     "Qui": [{ turma: "6º ano", disc: "Matemática" }],
     "Sex": [{ turma: "3ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Digital" }, { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }]
 };
@@ -80,7 +80,6 @@ function carregarDados() {
     });
 }
 
-// Bloqueio de meses: Trava estritamente entre Maio de 2026 (4) e Dezembro de 2026 (11)
 window.mudarMes = (direcao) => {
     let novoMes = currentMonth + direcao;
     let novoAno = currentYear;
@@ -158,7 +157,6 @@ window.saveData = () => {
 window.updateTable = () => {
     const tbody = document.getElementById('tableBody'); if(!tbody) return;
     
-    // Tratamento e unificação dos 3 filtros simultâneos
     const filtroDataInput = document.getElementById('searchData').value; 
     const fTurma = document.getElementById('searchTurma').value; 
     const fMateria = document.getElementById('searchMateria').value;
@@ -184,7 +182,6 @@ window.updateTable = () => {
                     if (!url.startsWith('http://') && !url.startsWith('https://')) {
                         url = 'https://' + url;
                     }
-                    // Retorna o link em formato de botão azul dinâmico para clique direto
                     anexoDisplay = `<a href="${url}" target="_blank" class="btn-link">🔗 Abrir Link</a>`;
                 }
                 tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${anexoDisplay}</td></tr>`;
