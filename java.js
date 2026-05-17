@@ -17,19 +17,16 @@ const db = getDatabase(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// ELEMENTOS DE TELA
 const loginView = document.getElementById('login-view');
 const appContent = document.getElementById('app-content');
 const mainNav = document.getElementById('main-nav');
 
-// LOGIN COM GOOGLE
 document.getElementById('btn-google-login').onclick = () => {
     signInWithPopup(auth, provider).catch(err => alert("Erro: " + err.message));
 };
 
 document.getElementById('btn-logout').onclick = () => signOut(auth);
 
-// MONITOR DE AUTENTICAÇÃO
 onAuthStateChanged(auth, (user) => {
     const emailsAutorizados = ["limagabrielpg@gmail.com", "silva.lima.gabriel3012@escola.pr.gov.br"];
 
@@ -39,7 +36,7 @@ onAuthStateChanged(auth, (user) => {
         mainNav.style.display = 'flex';
         carregarDados();
     } else if (user) {
-        alert("Acesso negado para o e-mail: " + user.email); // Isso vai nos mostrar qual e-mail está tentando entrar
+        alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
         signOut(auth);
     } else {
         loginView.style.display = 'block';
@@ -48,6 +45,7 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
+// Grade fixa atualizada: 2 aulas consecutivas de Matemática na 1ª série seguidas por Educação Digital
 const gradeFixa = {
     "Seg": [
         { turma: "1ª série", disc: "Matemática" }, 
@@ -62,13 +60,13 @@ const gradeFixa = {
         { turma: "8º ano", disc: "Matemática" }
     ],
     "Ter": [{ turma: "3ª série", disc: "Ed. Financeira" }],
-    "Qua": [{ turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }],
+    "Qua": [{ turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, {6º ano: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }],
     "Qui": [{ turma: "6º ano", disc: "Matemática" }],
     "Sex": [{ turma: "3ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Digital" }, { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }]
 };
 
 const feriados2026 = {
-    "2026-05-20": "Prova Paraná", "2026-05-19": "Prova Paraná", "2026-01-01": "Ano Novo", "2026-04-03": "Paixão de Cristo", "2026-04-05": "Páscoa", "2026-04-21": "Tiradentes", "2026-05-01": "Dia do Trabalho", "2026-06-04": "Corpus Christi", "2026-06-05": "Recesso Escolar", "2026-09-07": "Independência", "2026-10-12": "N. Sra Aparecida", "2026-10-13": "Recesso Escolar", "2026-11-02": "Finados", "2026-11-15": "Proclamação", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal"
+    "2026-01-01": "Ano Novo", "2026-04-03": "Paixão de Cristo", "2026-04-05": "Páscoa", "2026-04-21": "Tiradentes", "2026-05-01": "Dia do Trabalho", "2026-06-04": "Corpus Christi", "2026-06-05": "Recesso Escolar", "2026-09-07": "Independência", "2026-10-12": "N. Sra Aparecida", "2026-10-13": "Recesso Escolar", "2026-11-02": "Finados", "2026-11-15": "Proclamação", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal"
 };
 
 let dadosPlanejamento = {};
@@ -82,10 +80,19 @@ function carregarDados() {
     });
 }
 
+// Bloqueio de meses: Trava estritamente entre Maio de 2026 (4) e Dezembro de 2026 (11)
 window.mudarMes = (direcao) => {
-    currentMonth += direcao;
-    if (currentMonth > 11) { currentMonth = 0; currentYear++; } else if (currentMonth < 0) { currentMonth = 11; currentYear--; }
-    renderCalendar();
+    let novoMes = currentMonth + direcao;
+    let novoAno = currentYear;
+
+    if (novoMes > 11) { novoMes = 0; novoAno++; }
+    else if (novoMes < 0) { novoMes = 11; novoAno--; }
+
+    if (novoAno === 2026 && novoMes >= 4 && novoMes <= 11) {
+        currentMonth = novoMes;
+        currentYear = novoAno;
+        renderCalendar();
+    }
 };
 
 function isFerias(dateStr) {
@@ -150,12 +157,37 @@ window.saveData = () => {
 
 window.updateTable = () => {
     const tbody = document.getElementById('tableBody'); if(!tbody) return;
+    
+    // Tratamento e unificação dos 3 filtros simultâneos
+    const filtroDataInput = document.getElementById('searchData').value; 
+    const fTurma = document.getElementById('searchTurma').value; 
+    const fMateria = document.getElementById('searchMateria').value;
+    
+    let dataFiltroFormatada = "";
+    if(filtroDataInput) {
+        dataFiltroFormatada = filtroDataInput.split('-').reverse().join('/');
+    }
+
     tbody.innerHTML = "";
     Object.keys(dadosPlanejamento).sort().forEach(date => {
         const dataBR = date.split('-').reverse().join('/');
         dadosPlanejamento[date].forEach(aula => {
-            if(aula.conteudo.trim() !== "") {
-                tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${aula.anexo}</td></tr>`;
+            
+            const bateData = dataFiltroFormatada === "" || dataBR === dataFiltroFormatada;
+            const bateTurma = fTurma === "" || aula.turma === fTurma;
+            const bateMateria = fMateria === "" || aula.disc === fMateria;
+
+            if(bateData && bateTurma && bateMateria && aula.conteudo.trim() !== "") {
+                let anexoDisplay = "";
+                if (aula.anexo && aula.anexo.trim() !== "") {
+                    let url = aula.anexo.trim();
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                        url = 'https://' + url;
+                    }
+                    // Retorna o link em formato de botão azul dinâmico para clique direto
+                    anexoDisplay = `<a href="${url}" target="_blank" class="btn-link">🔗 Abrir Link</a>`;
+                }
+                tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${anexoDisplay}</td></tr>`;
             }
         });
     });
@@ -164,6 +196,7 @@ window.updateTable = () => {
 window.showView = (v) => { 
     document.getElementById('calendar-view').style.display = v === 'calendar' ? 'block' : 'none'; 
     document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none'; 
+    if(v === 'table') updateTable();
 };
 window.closeModal = () => { document.getElementById('modal').style.display = "none"; };
 document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); document.getElementById('nextMonth').onclick = () => window.mudarMes(1);
