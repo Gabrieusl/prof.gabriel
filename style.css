@@ -3,48 +3,66 @@
     --dark: #2c3e50; --blue: #3498db; --gray: #ecf0f1;
 }
 body { font-family: 'Segoe UI', sans-serif; margin: 0; background: #f0f2f5; display: flex; flex-direction: column; min-height: 100vh; }
-header { background: var(--dark); color: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; }
-nav button { background: #34495e; border: none; color: white; padding: 10px 20px; cursor: pointer; border-radius: 5px; margin-left: 5px; font-weight: bold; }
+header { background: var(--dark); color: white; padding: 12px 4%; display: flex; justify-content: space-between; align-items: center; }
+nav button { background: #34495e; border: none; color: white; padding: 8px 16px; cursor: pointer; border-radius: 5px; margin-left: 5px; font-weight: bold; }
 
-.calendar-controls { display: flex; justify-content: center; align-items: center; gap: 30px; padding: 10px; }
-.calendar-grid-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); max-width: 1100px; margin: 0 auto; gap: 6px; width: 95%; }
-.calendar-grid-header div { text-align: center; font-weight: bold; padding: 5px; color: #7f8c8d; }
+.calendar-controls { display: flex; justify-content: center; align-items: center; gap: 30px; padding: 10px 0; }
+.calendar-controls h2 { margin: 0; font-size: 1.4rem; color: var(--dark); }
+.calendar-controls button { background: white; border: 1px solid #ddd; padding: 6px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
+/* LAYOUT EM COLUNAS (DASHBOARD) */
+.dashboard-container { display: flex; max-width: 1350px; margin: 0 auto; gap: 20px; padding: 0 20px; width: 100%; box-sizing: border-box; }
+.calendar-section { flex: 3; display: flex; flex-direction: column; } /* 3/4 da tela */
+.agenda-section { flex: 1; background: white; padding: 15px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); display: flex; flex-direction: column; max-height: 520px; } /* 1/4 da tela */
+
+/* GRADE DO CALENDÁRIO */
+.calendar-grid-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; width: 100%; }
+.calendar-grid-header div { text-align: center; font-weight: bold; padding: 5px 0; color: #7f8c8d; font-size: 0.9rem; }
+
+/* CARD DO DIA (COMPACTADO PARA NÃO GERAR ROLAGEM) */
 .day-card { 
-    height: 85px; padding: 8px; border-radius: 8px; cursor: pointer; 
+    height: 70px; padding: 6px; border-radius: 6px; cursor: pointer; 
     display: flex; flex-direction: column; justify-content: space-between; 
-    transition: 0.2s; border: 1px solid rgba(0,0,0,0.05); 
+    transition: 0.2s; border: 1px solid rgba(0,0,0,0.04); box-sizing: border-box;
 }
+.day-card span { font-size: 0.75rem; }
 
 .status-empty { background-color: var(--red); color: white; }
 .status-partial { background-color: var(--orange); color: white; }
 .status-full { background-color: var(--green); color: white; }
-.status-weekend { background-color: #dcdde1; color: #7f8c8d; cursor: not-allowed; opacity: 0.6; }
+.status-weekend { background-color: #eaeded; color: #95a5a6; cursor: not-allowed; opacity: 0.6; }
 .status-holiday { background-color: var(--blue); color: white; cursor: not-allowed; }
-.holiday-name { font-size: 0.65rem; text-align: center; line-height: 1.1; font-weight: bold; }
+.holiday-name { font-size: 0.6rem; text-align: center; line-height: 1.1; font-weight: bold; }
 
-.filters-container { max-width: 1100px; margin: 20px auto; display: flex; gap: 10px; padding: 0 10px; width: 95%; }
+/* SEÇÃO DA AGENDA LATERAL */
+.agenda-section h3 { margin-top: 0; margin-bottom: 12px; color: var(--dark); font-size: 1.1rem; border-bottom: 2px solid #f0f2f5; padding-bottom: 8px; }
+.agenda-list { flex: 1; overflow-y: auto; padding-right: 5px; }
+.agenda-item { background: #f8f9fa; border-left: 4px solid var(--blue); padding: 8px; margin-bottom: 8px; border-radius: 0 4px 4px 0; font-size: 0.85rem; position: relative; }
+.agenda-item strong { color: var(--dark); display: block; margin-bottom: 2px; }
+.btn-del-event { position: absolute; top: 4px; right: 4px; background: none; border: none; color: #bdc3c7; cursor: pointer; font-size: 0.8rem; }
+.btn-del-event:hover { color: var(--red); }
+
+.add-event-box { border-top: 1px solid #eee; padding-top: 10px; margin-top: 10px; }
+.add-event-box h4 { margin: 0 0 8px 0; font-size: 0.85rem; color: #7f8c8d; }
+.add-event-box input { width: 100%; padding: 6px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 6px; font-size: 0.8rem; box-sizing: border-box; }
+.add-event-box button { width: 100%; background: var(--dark); color: white; border: none; padding: 7px; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 0.8rem; }
+
+/* TABELA E FILTROS */
+.filters-container { max-width: 1310px; margin: 20px auto; display: flex; gap: 10px; padding: 0; width: 100%; }
 .filters-container input, .filters-container select { padding: 10px; border-radius: 5px; border: 1px solid #ddd; flex: 1; font-size: 0.95rem; }
-
-.table-container { max-width: 1100px; margin: 0 auto 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 95%; overflow-x: auto; }
+.table-container { max-width: 1310px; margin: 0 auto 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 700px; }
 th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
 th { background: #f8f9fa; }
+.btn-link { display: inline-block; padding: 6px 12px; background-color: var(--blue); color: white; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-align: center; }
 
-.btn-link { 
-    display: inline-block; padding: 6px 12px; background-color: var(--blue); 
-    color: white; text-decoration: none; border-radius: 4px; 
-    font-size: 0.8rem; font-weight: bold; text-align: center;
-    transition: background 0.2s;
-}
-.btn-link:hover { background-color: #2980b9; }
-
+/* MODAL INTERNO */
 .modal { display: none; position: fixed; top:0; left:0; width: 100%; height:100%; background: rgba(0,0,0,0.7); z-index: 100; }
-.modal-content { background: white; margin: 2% auto; padding: 25px; width: 95%; max-width: 1200px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
-#classInputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 15px; margin: 20px 0; }
-.class-edit-row { background: #f9f9f9; padding: 15px; border-radius: 8px; border-top: 4px solid var(--dark); }
-.class-edit-row input { width: 100%; box-sizing: border-box; margin-top: 8px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+.modal-content { background: white; margin: 2% auto; padding: 25px; width: 92%; max-width: 1200px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
+#classInputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin: 15px 0; }
+.class-edit-row { background: #f9f9f9; padding: 12px; border-radius: 8px; border-top: 4px solid var(--dark); }
+.class-edit-row input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
 .modal-buttons { display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #eee; padding-top: 15px; }
 .save-btn { background: var(--green); color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
 
-footer { text-align: center; padding: 15px; background: var(--dark); color: white; font-size: 0.9rem; margin-top: auto; font-weight: bold; }
+footer { text-align: center; padding: 12px; background: var(--dark); color: white; font-size: 0.85rem; margin-top: auto; font-weight: bold; }
