@@ -6,7 +6,6 @@
     <title>PLANEJAMENTO 2026</title>
     <link rel="stylesheet" href="style.css">
 </head>
-    
 <body>
     <header>
         <div class="logo"><strong>PLANEJAMENTO 2026</strong></div>
@@ -30,16 +29,36 @@
         </section>
 
         <section id="app-content" style="display:none;">
+            
             <div id="calendar-view">
                 <div class="calendar-controls">
                     <button id="prevMonth">◀ Anterior</button>
                     <h2 id="monthDisplay">...</h2>
                     <button id="nextMonth">Próximo ▶</button>
                 </div>
-                <div class="calendar-grid-header">
-                    <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                
+                <div class="dashboard-container">
+                    <div class="calendar-section">
+                        <div class="calendar-grid-header">
+                            <div>Dom</div><div>Seg</div><div>Ter</div><div>Qua</div><div>Qui</div><div>Sex</div><div>Sáb</div>
+                        </div>
+                        <div id="calendarGrid" class="calendar-grid"></div>
+                    </div>
+                    
+                    <div class="agenda-section">
+                        <h3>📌 Eventos Importantes</h3>
+                        <div id="agendaList" class="agenda-list">
+                            <p style="color:#7f8c8d; font-size:0.9rem;">Nenhum evento agendado.</p>
+                        </div>
+                        
+                        <div class="add-event-box">
+                            <h4>➕ Novo Evento / Lembrete</h4>
+                            <input type="text" id="eventDate" placeholder="Ex: 20/05">
+                            <input type="text" id="eventText" placeholder="Ex: Olimpíada OBMEP">
+                            <button onclick="adicionarEventoAgenda()">Fixar Evento</button>
+                        </div>
+                    </div>
                 </div>
-                <div id="calendarGrid" class="calendar-grid"></div>
             </div>
 
             <section id="table-view" style="display:none;">
