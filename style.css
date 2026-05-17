@@ -10,7 +10,6 @@ nav button { background: #34495e; border: none; color: white; padding: 10px 20px
 .calendar-grid-header, .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); max-width: 1100px; margin: 0 auto; gap: 6px; width: 95%; }
 .calendar-grid-header div { text-align: center; font-weight: bold; padding: 5px; color: #7f8c8d; }
 
-/* Altura dos cards reduzida para 85px para evitar rolagem de tela vertical */
 .day-card { 
     height: 85px; padding: 8px; border-radius: 8px; cursor: pointer; 
     display: flex; flex-direction: column; justify-content: space-between; 
@@ -27,13 +26,11 @@ nav button { background: #34495e; border: none; color: white; padding: 10px 20px
 .filters-container { max-width: 1100px; margin: 20px auto; display: flex; gap: 10px; padding: 0 10px; width: 95%; }
 .filters-container input, .filters-container select { padding: 10px; border-radius: 5px; border: 1px solid #ddd; flex: 1; font-size: 0.95rem; }
 
-/* Adicionado overflow-x auto para que tabelas largas criem barras de rolagem internas sem quebrar o layout */
 .table-container { max-width: 1100px; margin: 0 auto 30px auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); width: 95%; overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; min-width: 700px; }
 th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
 th { background: #f8f9fa; }
 
-/* Botão Azul de Link formatado */
 .btn-link { 
     display: inline-block; padding: 6px 12px; background-color: var(--blue); 
     color: white; text-decoration: none; border-radius: 4px; 
@@ -50,5 +47,4 @@ th { background: #f8f9fa; }
 .modal-buttons { display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #eee; padding-top: 15px; }
 .save-btn { background: var(--green); color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
 
-/* Rodapé */
 footer { text-align: center; padding: 15px; background: var(--dark); color: white; font-size: 0.9rem; margin-top: auto; font-weight: bold; }
