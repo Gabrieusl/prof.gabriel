@@ -77,7 +77,12 @@ const feriados2026 = {
 
 let dadosPlanejamento = {};
 let listaEventos = {};
-let currentMonth = 4; let currentYear = 2026; let selectedDateKey = "";
+
+// CAPTURA O MÊS E ANO ATUAIS AUTOMATICAMENTE AO ABRIR O SITE
+const dataDispositivo = new Date();
+let currentMonth = dataDispositivo.getMonth(); 
+let currentYear = dataDispositivo.getFullYear(); 
+let selectedDateKey = "";
 
 function carregarDados() {
     onValue(ref(db, 'planejamentos'), (snapshot) => {
@@ -92,15 +97,18 @@ function carregarAgenda() {
     onValue(ref(db, 'eventos_importantes'), (snapshot) => {
         listaEventos = snapshot.val() || {};
         const container = document.getElementById('agendaList');
+        if (!container) return; // Salvaguarda caso o elemento não exista na view atual
         container.innerHTML = "";
         
-        const chaves = Object.keys(listaEventos);
-        if(chaves.length === 0) {
+        const chaves = Object.keys(listaEventEventos);
+        const chavesFiltradas = chaves.filter(k => listaEventos[k]); // Evita leitura de chaves nulas
+        
+        if(chavesFiltradas.length === 0) {
             container.innerHTML = `<p style="color:#7f8c8d; font-size:0.85rem;">Nenhum evento agendado.</p>`;
             return;
         }
 
-        chaves.forEach(key => {
+        chavesFiltradas.forEach(key => {
             const ev = listaEventos[key];
             container.innerHTML += `
                 <div class="agenda-item">
@@ -135,7 +143,8 @@ window.mudarMes = (direcao) => {
     if (novoMes > 11) { novoMes = 0; novoAno++; }
     else if (novoMes < 0) { novoMes = 11; novoAno--; }
 
-    if (novoAno === 2026 && novoMes >= 4 && novoMes <= 11) {
+    // Ajustado para permitir a navegação se o mês atual inicial estiver fora do escopo letivo padrão (ex: se abrir em Janeiro/Julho)
+    if (novoAno === 2026) {
         currentMonth = novoMes; currentYear = novoAno;
         renderCalendar();
     }
