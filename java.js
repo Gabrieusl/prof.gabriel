@@ -33,7 +33,7 @@ onAuthStateChanged(auth, (user) => {
     if (user && emailsAutorizados.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) { 
         loginView.style.display = 'none';
         appContent.style.display = 'block';
-        mainNav.style.display = 'flex';
+        mainNav.style.display = 'flex'; // Mantém o flex unificado do cabeçalho
         carregarDados();
         carregarAgenda();
         carregarDadosNotas(); 
@@ -249,7 +249,7 @@ document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); docume
 
 
 /* ==========================================================================
-   ACRÉSCIMO COMPLETO: BANCO NOMINAL DE ALUNOS E GERENCIAMENTO DINÂMICO
+   MÓDULO DE NOTAS: 10 COLUNAS COM TÍTULO E DATA PERSONALIZÁVEIS NA NUVEM
    ========================================================================== */
 
 const listaAlunosPadrao = {
@@ -279,146 +279,171 @@ document.getElementById('selectTurmaNotas').onchange = (e) => {
 
 function renderizarTabelaNotas(turmaKey) {
     const container = document.getElementById('container-tabela-notas');
+    const header = document.getElementById('headerTabelaNotas');
     const corpo = document.getElementById('corpoTabelaNotas');
     const titulo = document.getElementById('tituloTurmaNotas');
     const select = document.getElementById('selectTurmaNotas');
 
-    if (!turmaKey) {
-        container.style.display = 'none';
-        return;
-    }
+    if (!turmaKey) { container.style.display = 'none'; return; }
 
     titulo.innerText = `Lançamento - ${select.options[select.selectedIndex].text}`;
-    corpo.innerHTML = "";
     container.style.display = 'block';
 
-    // Se a turma não existir no banco da nuvem, cria a estrutura inicial com sua lista nominal fixa
+    // Se a turma estiver completamente vazia na nuvem, faz a carga nominal padrão inicial com 10 colunas
     if (!dadosNotasFirebase[turmaKey]) {
-        let cargaInicial = {};
-        const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
+        let cargaInicial = { config_colunas: {} };
+        for (let i = 1; i <= 10; i++) {
+            cargaInicial.config_colunas[`n${i}`] = { label: `Nota ${i}`, data: "" };
+        }
         
+        const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
         alunosPadrao.forEach((nomeAluno, index) => {
             const idGerado = `aluno_${Date.now()}_${index}`;
-            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "" };
+            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "", n4: "", n5: "", n6: "", n7: "", n8: "", n9: "", n10: "" };
         });
 
-        // Envia imediatamente para dar persistência inicial ao banco remoto
         set(ref(db, 'diario_notas/' + turmaKey), cargaInicial);
         return; 
     }
 
-    const alunosDaTurma = dadosNotasFirebase[turmaKey];
+    const estruturaTurma = dadosNotasFirebase[turmaKey];
+    const colunasConfig = estruturaTurma.config_colunas || {};
 
-    // Ordena os alunos em ordem alfabética para facilitar a chamada
-    const alunosOrdenados = Object.keys(alunosDaTurma).map(id => ({
-        id: id,
-        ...alunosDaTurma[id]
-    })).sort((a, b) => a.nome.localeCompare(b.nome));
+    // 1. MONTAR CABEÇALHO DINÂMICO DE 10 COLUNAS COM INPUTS DE TÍTULO E DATA
+    let htmlHeader = `<th style="padding: 12px; text-align: left; min-width: 220px;">Estudante</th>`;
+    for(let i = 1; i <= 10; i++) {
+        const conf = colunasConfig[`n${i}`] || { label: `Nota ${i}`, data: "" };
+        htmlHeader += `
+            <th style="padding: 10px; text-align: center; width: 95px; background: #34495e;">
+                <input type="text" class="header-input-title" id="head_label_n${i}" value="${conf.label}" placeholder="Avaliação"><br>
+                <input type="text" class="header-input-date" id="head_date_n${i}" value="${conf.data}" placeholder="Data">
+            </th>`;
+    }
+    htmlHeader += `
+        <th style="padding: 12px; width: 80px; text-align: center; background: #16a085; color: white;">Média</th>
+        <th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
+    header.innerHTML = htmlHeader;
 
-    if (alunosOrdenados.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno matriculado nesta turma.</td></tr>`;
+    // 2. MONTAR LINHAS DOS ALUNOS
+    corpo.innerHTML = "";
+    const listaAlunos = Object.keys(estruturaTurma)
+        .filter(key => key !== 'config_colunas')
+        .map(id => ({ id: id, ...estruturaTurma[id] }))
+        .sort((a, b) => a.nome.localeCompare(b.nome));
+
+    if (listaAlunos.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="13" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno matriculado.</td></tr>`;
         return;
     }
 
-    alunosOrdenados.forEach(aluno => {
-        let mediaDisplay = "-";
-        const v1 = parseFloat(aluno.n1);
-        const v2 = parseFloat(aluno.n2);
-        const v3 = parseFloat(aluno.n3);
-        if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
-            mediaDisplay = ((v1 + v2 + v3) / 3).toFixed(1);
+    listaAlunos.forEach(aluno => {
+        let trHtml = `<td style="padding: 12px; font-weight: 500; color: #2c3e50;">${aluno.nome}</td>`;
+        
+        let soma = 0;
+        let qtdNotasValidas = 0;
+
+        for(let i = 1; i <= 10; i++) {
+            const notaValor = aluno[`n${i}`] || '';
+            trHtml += `
+                <td style="padding: 6px; text-align: center;">
+                    <input type="number" min="0" max="10" step="0.1" class="nota-input-dinamica" 
+                           data-aluno="${aluno.id}" data-nota="n${i}" value="${notaValor}">
+                </td>`;
+            
+            const num = parseFloat(notaValor);
+            if(!isNaN(num)) {
+                soma += num;
+                qtdNotasValidas++;
+            }
         }
+
+        let mediaDisplay = qtdNotasValidas > 0 ? (soma / qtdNotasValidas).toFixed(1) : "-";
+
+        trHtml += `
+            <td style="padding: 12px; text-align: center; font-weight: bold; background: #fafffd; color: #16a085;" id="media_${aluno.id}">${mediaDisplay}</td>
+            <td style="padding: 12px; text-align: center;">
+                <button class="btn-excluir-aluno" data-id="${aluno.id}" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">✕</button>
+            </td>`;
 
         const tr = document.createElement('tr');
         tr.style.borderBottom = "1px solid #f1f1f1";
-        tr.innerHTML = `
-            <td style="padding: 12px; font-weight: 500;">${aluno.nome}</td>
-            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n1" value="${aluno.n1 || ''}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
-            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n2" value="${aluno.n2 || ''}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
-            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n3" value="${aluno.n3 || ''}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
-            <td style="padding: 12px; text-align: center; font-weight: bold;">${mediaDisplay}</td>
-            <td style="padding: 12px; text-align: center;">
-                <button class="btn-excluir-aluno" data-id="${aluno.id}" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">✕</button>
-            </td>
-        `;
+        tr.innerHTML = trHtml;
         corpo.appendChild(tr);
     });
 
-    // Escuta de alteração de campos para atualizar médias na tela de forma ágil
-    corpo.querySelectorAll('.nota-input').forEach(input => {
+    // Evento reativo para cálculo da Média em tempo real ao digitar as notas
+    corpo.querySelectorAll('.nota-input-dinamica').forEach(input => {
         input.oninput = () => {
             const alunoId = input.getAttribute('data-aluno');
-            const inputsDoAluno = corpo.querySelectorAll(`.nota-input[data-aluno="${alunoId}"]`);
-            const v1 = parseFloat(inputsDoAluno[0].value);
-            const v2 = parseFloat(inputsDoAluno[1].value);
-            const v3 = parseFloat(inputsDoAluno[2].value);
-            const tdMedia = input.closest('tr').querySelector('td:nth-child(5)');
+            const inputsDoAluno = corpo.querySelectorAll(`.nota-input-dinamica[data-aluno="${alunoId}"]`);
+            let soma = 0, qtd = 0;
             
-            if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
-                tdMedia.innerHTML = ((v1 + v2 + v3) / 3).toFixed(1);
-            } else {
-                tdMedia.innerHTML = "-";
-            }
+            inputsDoAluno.forEach(inp => {
+                const v = parseFloat(inp.value);
+                if(!isNaN(v)) { soma += v; qtd++; }
+            });
+            
+            document.getElementById(`media_${alunoId}`).innerText = qtd > 0 ? (soma / qtd).toFixed(1) : "-";
         };
     });
 
-    // Vincula ação dos botões de exclusão individual de alunos
+    // Botão Excluir Aluno individualmente
     corpo.querySelectorAll('.btn-excluir-aluno').forEach(btn => {
         btn.onclick = () => {
             const idAluno = btn.getAttribute('data-id');
-            const nomeAluno = alunosDaTurma[idAluno].nome;
-            if (confirm(`Tem certeza que deseja remover o(a) aluno(a) "${nomeAluno}" desta turma?`)) {
-                remove(ref(db, `diario_notas/${turmaKey}/${idAluno}`))
-                    .then(() => alert("Aluno removido com sucesso!"));
+            const nomeAluno = estruturaTurma[idAluno].nome;
+            if (confirm(`Remover estudante "${nomeAluno}"?`)) {
+                remove(ref(db, `diario_notas/${turmaKey}/${idAluno}`)).then(() => alert("Removido!"));
             }
         };
     });
 }
 
-// Lógica de inclusão manual de novos estudantes na lista
+// Inclusão Manual de Aluno na lista
 document.getElementById('btnAdicionarAluno').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     const inputNome = document.getElementById('novoAlunoNome');
     const nome = inputNome.value.trim();
 
-    if (!turmaKey) return;
-    if (!nome) return alert("Digite o nome do aluno para incluí-lo!");
+    if (!turmaKey || !nome) return alert("Selecione a turma e digite o nome!");
 
     const novoId = `aluno_${Date.now()}`;
-    
-    // Insere o novo nó diretamente na coleção estruturada da turma correspondente
-    set(ref(db, `diario_notas/${turmaKey}/${novoId}`), {
-        nome: nome,
-        n1: "",
-        n2: "",
-        n3: ""
-    }).then(() => {
+    let corpoAluno = { nome: nome };
+    for(let i=1; i<=10; i++) corpoAluno[`n${i}`] = "";
+
+    set(ref(db, `diario_notas/${turmaKey}/${novoId}`), corpoAluno).then(() => {
         inputNome.value = "";
-        alert(`Aluno "${nome}" adicionado com sucesso!`);
-    }).catch(err => alert("Erro ao adicionar aluno: " + err.message));
+    });
 };
 
+// Sincronizar Notas + Títulos de Cabeçalho e Datas na Nuvem
 document.getElementById('btnSalvarNotas').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     if(!turmaKey) return;
 
-    const corpo = document.getElementById('corpoTabelaNotas');
-    const inputs = corpo.querySelectorAll('.nota-input');
-    
-    // Clona o estado atual da turma para não apagar os nomes ao atualizar as notas
-    let dadosParaSalvar = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
+    let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
+    if(!cloneDados.config_colunas) cloneDados.config_colunas = {};
 
-    inputs.forEach(input => {
+    // Coleta as customizações dos 10 cabeçalhos
+    for(let i = 1; i <= 10; i++) {
+        const lbl = document.getElementById(`head_label_n${i}`).value.trim();
+        const dt = document.getElementById(`head_date_n${i}`).value.trim();
+        cloneDados.config_colunas[`n${i}`] = { label: lbl || `Nota ${i}`, data: dt || "" };
+    }
+
+    // Coleta as notas de todos os inputs da tabela
+    const inputsNotas = document.getElementById('corpoTabelaNotas').querySelectorAll('.nota-input-dinamica');
+    inputsNotas.forEach(input => {
         const alunoId = input.getAttribute('data-aluno');
-        const tipoNota = input.getAttribute('data-nota');
+        const colunaNota = input.getAttribute('data-nota');
         const valor = input.value.trim();
 
-        if(dadosParaSalvar[alunoId]) {
-            dadosParaSalvar[alunoId][tipoNota] = valor;
+        if(cloneDados[alunoId]) {
+            cloneDados[alunoId][colunaNota] = valor;
         }
     });
 
-    set(ref(db, 'diario_notas/' + turmaKey), dadosParaSalvar)
-        .then(() => alert("Notas sincronizadas com a nuvem com sucesso!"))
-        .catch(err => alert("Erro ao salvar notas: " + err.message));
+    set(ref(db, 'diario_notas/' + turmaKey), cloneDados)
+        .then(() => alert("Diário de notas salvo e sincronizado com sucesso!"))
+        .catch(err => alert("Erro ao sincronizar: " + err.message));
 };
