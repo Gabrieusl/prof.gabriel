@@ -37,6 +37,7 @@ onAuthStateChanged(auth, (user) => {
         carregarDados();
         carregarAgenda();
         carregarDadosNotas(); 
+        carregarDadosCaderno(); // Inicializa monitoramento do Caderno
     } else if (user) {
         alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
         signOut(auth);
@@ -79,6 +80,7 @@ const feriados2026 = {
 let dadosPlanejamento = {};
 let listaEventos = {};
 let dadosNotasFirebase = {};
+let dadosCadernoFirebase = {}; // Estrutura em tempo real do Caderno
 
 const dataDispositivo = new Date();
 let currentMonth = dataDispositivo.getMonth(); 
@@ -105,7 +107,7 @@ function carregarAgenda() {
             return;
         }
         chavesFiltradas.forEach(key => {
-            const ev = listaEventEventos ? listaEventos[key] : ev;
+            const ev = listaEventos ? listaEventos[key] : ev;
             container.innerHTML += `<div class="agenda-item"><strong>📅 ${ev.data}</strong> ${ev.texto}<button class="btn-del-event" onclick="deletarEventoAgenda('${key}')">✕</button></div>`;
         });
     });
@@ -183,16 +185,18 @@ window.updateTable = () => {
     });
 };
 
+// ATUALIZADO: Gerenciamento limpo de views incluindo a do caderno
 window.showView = (v) => { 
     document.getElementById('calendar-view').style.display = v === 'calendar' ? 'block' : 'none'; 
     document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none'; 
     document.getElementById('notas-view').style.display = v === 'notas' ? 'block' : 'none'; 
+    document.getElementById('caderno-view').style.display = v === 'caderno' ? 'block' : 'none'; 
 };
 window.closeModal = () => { document.getElementById('modal').style.display = "none"; };
 document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); document.getElementById('nextMonth').onclick = () => window.mudarMes(1);
 
 /* ==========================================================================
-   DIÁRIO DE NOTAS CONTROLADO DINAMICAMENTE (COMEÇA COM 4 COLUNAS FIÉIS)
+   DIÁRIO DE NOTAS CONTROLADO DINAMICAMENTE
    ========================================================================== */
 
 const listaAlunosPadrao = {
@@ -216,10 +220,6 @@ function carregarDadosNotas() {
     });
 }
 
-document.getElementById('selectTurmaNotas').onchange = (e) => {
-    renderizarTabelaNotas(e.target.value);
-};
-
 function renderizarTabelaNotas(turmaKey) {
     const container = document.getElementById('container-tabela-notas');
     const header = document.getElementById('headerTabelaNotas');
@@ -232,51 +232,39 @@ function renderizarTabelaNotas(turmaKey) {
     titulo.innerText = `Lançamento - ${select.options[select.selectedIndex].text}`;
     container.style.display = 'block';
 
-    // Inicialização segura de turma nova estritamente com 4 colunas (n1 a n4)
     if (!dadosNotasFirebase[turmaKey]) {
         let cargaInicial = { config_colunas: {} };
         for (let i = 1; i <= 4; i++) {
             cargaInicial.config_colunas[`n${i}`] = { label: `Nota ${i}`, data: "" };
         }
-        
         const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
         alunosPadrao.forEach((nomeAluno, index) => {
             const idGerado = `aluno_${Date.now()}_${index}`;
             cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "", n4: "" };
         });
-
         set(ref(db, 'diario_notas/' + turmaKey), cargaInicial);
         return; 
     }
 
     const estruturaTurma = dadosNotasFirebase[turmaKey];
     const colunasConfig = estruturaTurma.config_colunas || {};
-    
-    const chavesColunas = Object.keys(colunasConfig).sort((a,b) => {
-        return parseInt(a.replace('n','')) - parseInt(b.replace('n',''));
-    });
+    const chavesColunas = Object.keys(colunasConfig).sort((a,b) => parseInt(a.replace('n','')) - parseInt(b.replace('n','')));
 
-    // 1. CABEÇALHO DINÂMICO
     let htmlHeader = `<th style="padding: 12px; text-align: left;">Estudante</th>`;
     chavesColunas.forEach(key => {
         const conf = colunasConfig[key] || { label: 'Nota', data: "" };
         htmlHeader += `
             <th style="padding: 10px; text-align: center; width: 95px; background: #34495e;">
-                <input type="text" class="header-input-title" id="head_label_${key}" value="${conf.label}" placeholder="Avaliação"><br>
+                <input type="text" class="header-input-title" id="head_label_${key}" value="${conf.label}"><br>
                 <input type="text" class="header-input-date" id="head_date_${key}" value="${conf.data}" placeholder="Data">
             </th>`;
     });
-    htmlHeader += `
-        <th style="padding: 12px; width: 80px; text-align: center; background: #16a085; color: white;">Média</th>
-        <th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
+    htmlHeader += `<th style="padding: 12px; width: 80px; text-align: center; background: #16a085; color: white;">Média</th><th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
     header.innerHTML = htmlHeader;
 
-    // 2. LINHAS DOS ALUNOS
     corpo.innerHTML = "";
-    const listaAlunos = Object.keys(estruturaTurma)
-        .filter(key => key !== 'config_colunas')
-        .map(id => ({ id: id, ...estruturaTurma[id] }))
-        .sort((a, b) => a.nome.localeCompare(b.nome));
+    const listaAlunos = Object.keys(estruturaTurma).filter(key => key !== 'config_colunas')
+        .map(id => ({ id: id, ...estruturaTurma[id] })).sort((a, b) => a.nome.localeCompare(b.nome));
 
     if (listaAlunos.length === 0) {
         corpo.innerHTML = `<tr><td colspan="${chavesColunas.length + 3}" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno matriculado.</td></tr>`;
@@ -285,148 +273,222 @@ function renderizarTabelaNotas(turmaKey) {
 
     listaAlunos.forEach(aluno => {
         let trHtml = `<td style="padding: 10px; font-weight: 500; color: #2c3e50;">${aluno.nome}</td>`;
-        
-        let soma = 0;
-        let qtdNotasValidas = 0;
+        let soma = 0, qtdNotasValidas = 0;
 
         chavesColunas.forEach(key => {
             const notaValor = aluno[key] || '';
-            trHtml += `
-                <td style="padding: 6px; text-align: center;">
-                    <input type="number" min="0" max="10" step="0.1" class="nota-input-dinamica" 
-                           data-aluno="${aluno.id}" data-nota="${key}" value="${notaValor}">
-                </td>`;
-            
+            trHtml += `<td style="padding: 6px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input-dinamica" data-aluno="${aluno.id}" data-nota="${key}" value="${notaValor}"></td>`;
             const num = parseFloat(notaValor);
-            if(!isNaN(num)) {
-                soma += num;
-                qtdNotasValidas++;
-            }
+            if(!isNaN(num)) { soma += num; qtdNotasValidas++; }
         });
 
         let mediaDisplay = qtdNotasValidas > 0 ? (soma / qtdNotasValidas).toFixed(1) : "-";
+        trHtml += `<td style="padding: 10px; text-align: center; font-weight: bold; background: #fafffd; color: #16a085;" id="media_${aluno.id}">${mediaDisplay}</td><td><button class="btn-excluir-aluno" data-id="${aluno.id}">✕</button></td>`;
 
-        trHtml += `
-            <td style="padding: 10px; text-align: center; font-weight: bold; background: #fafffd; color: #16a085;" id="media_${aluno.id}">${mediaDisplay}</td>
-            <td style="padding: 10px; text-align: center;">
-                <button class="btn-excluir-aluno" data-id="${aluno.id}" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">✕</button>
-            </td>`;
-
-        const tr = document.createElement('tr');
-        tr.style.borderBottom = "1px solid #f1f1f1";
-        tr.innerHTML = trHtml;
-        corpo.appendChild(tr);
+        const tr = document.createElement('tr'); tr.style.borderBottom = "1px solid #f1f1f1"; tr.innerHTML = trHtml; corpo.appendChild(tr);
     });
 
     corpo.querySelectorAll('.nota-input-dinamica').forEach(input => {
         input.oninput = () => {
             const alunoId = input.getAttribute('data-aluno');
             const inputsDoAluno = corpo.querySelectorAll(`.nota-input-dinamica[data-aluno="${alunoId}"]`);
-            let soma = 0, qtd = 0;
-            
-            inputsDoAluno.forEach(inp => {
-                const v = parseFloat(inp.value);
-                if(!isNaN(v)) { soma += v; qtd++; }
-            });
-            
-            document.getElementById(`media_${alunoId}`).innerText = qtd > 0 ? (soma / qtd).toFixed(1) : "-";
+            let s = 0, q = 0;
+            inputsDoAluno.forEach(inp => { const v = parseFloat(inp.value); if(!isNaN(v)) { s += v; q++; } });
+            document.getElementById(`media_${alunoId}`).innerText = q > 0 ? (s / q).toFixed(1) : "-";
         };
     });
 
     corpo.querySelectorAll('.btn-excluir-aluno').forEach(btn => {
-        btn.onclick = () => {
-            const idAluno = btn.getAttribute('data-id');
-            const nomeAluno = estruturaTurma[idAluno].nome;
-            if (confirm(`Remover estudante "${nomeAluno}"?`)) {
-                remove(ref(db, `diario_notas/${turmaKey}/${idAluno}`));
-            }
-        };
+        btn.onclick = () => { if (confirm("Remover estudante?")) remove(ref(db, `diario_notas/${turmaKey}/${btn.getAttribute('data-id')}`)); };
     });
 }
 
-// CORREÇÃO DEFINITIVA DO BOTÃO: Adiciona coluna com mapeamento limpo de objetos clonados
 document.getElementById('btnAdicionarColunaNota').onclick = () => {
-    const turmaKey = document.getElementById('selectTurmaNotas').value;
-    if(!turmaKey) return alert("Selecione uma turma primeiro!");
-
-    // Resgata o objeto direto da árvore local e garante o nó config_colunas limpo
-    let dadosAtuais = dadosNotasFirebase[turmaKey] || {};
-    let cloneDados = JSON.parse(JSON.stringify(dadosAtuais));
-    
-    if(!cloneDados.config_colunas) {
-        cloneDados.config_colunas = {};
-        for(let i = 1; i <= 4; i++) {
-            cloneDados.config_colunas[`n${i}`] = { label: `Nota ${i}`, data: "" };
-        }
-    }
-
-    const numeroProximaColuna = Object.keys(cloneDados.config_colunas).length + 1;
-    const novaChave = `n${numeroProximaColuna}`;
-
-    // Insere os metadados da nova coluna
-    cloneDados.config_colunas[novaChave] = { label: `Nota ${numeroProximaColuna}`, data: "" };
-
-    // Garante que todos os estudantes recebam a nova chave vazia
-    Object.keys(cloneDados).forEach(idKey => {
-        if(idKey !== 'config_colunas') {
-            cloneDados[idKey][novaChave] = "";
-        }
-    });
-
-    set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => {
-        alert(`Coluna "Nota ${numeroProximaColuna}" inserida!`);
-    }).catch(err => alert("Erro ao criar coluna: " + err.message));
+    const turmaKey = document.getElementById('selectTurmaNotas').value; if(!turmaKey) return;
+    let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
+    if(!cloneDados.config_colunas) { cloneDados.config_colunas = {}; for(let i=1; i<=4; i++) cloneDados.config_colunas[`n${i}`] = {label:`Nota ${i}`,data:""}; }
+    const num = Object.keys(cloneDados.config_colunas).length + 1; const nk = `n${num}`;
+    cloneDados.config_colunas[nk] = { label: `Nota ${num}`, data: "" };
+    Object.keys(cloneDados).forEach(k => { if(k !== 'config_colunas') cloneDados[k][nk] = ""; });
+    set(ref(db, 'diario_notas/' + turmaKey), cloneDados);
 };
 
 document.getElementById('btnAdicionarAluno').onclick = () => {
-    const turmaKey = document.getElementById('selectTurmaNotas').value;
-    const inputNome = document.getElementById('novoAlunoNome');
-    const nome = inputNome.value.trim();
-
-    if (!turmaKey || !nome) return alert("Selecione a turma e digite o nome!");
-
-    const estruturaTurma = dadosNotasFirebase[turmaKey] || {};
-    const colunasConfig = estruturaTurma.config_colunas || { n1: {}, n2: {}, n3: {}, n4: {} };
-
-    const novoId = `aluno_${Date.now()}`;
-    let corpoAluno = { nome: nome };
-    
-    Object.keys(colunasConfig).forEach(key => {
-        corpoAluno[key] = "";
-    });
-
-    set(ref(db, `diario_notas/${turmaKey}/${novoId}`), corpoAluno).then(() => {
-        inputNome.value = "";
-    });
+    const turmaKey = document.getElementById('selectTurmaNotas').value; const input = document.getElementById('novoAlunoNome'); const nome = input.value.trim();
+    if (!turmaKey || !nome) return;
+    const config = dadosNotasFirebase[turmaKey]?.config_colunas || { n1: {}, n2: {}, n3: {}, n4: {} };
+    const nid = `aluno_${Date.now()}`; let obj = { nome: nome }; Object.keys(config).forEach(k => obj[k] = "");
+    set(ref(db, `diario_notas/${turmaKey}/${nid}`), obj).then(() => input.value = "");
 };
 
 document.getElementById('btnSalvarNotas').onclick = () => {
-    const turmaKey = document.getElementById('selectTurmaNotas').value;
-    if(!turmaKey) return;
-
+    const turmaKey = document.getElementById('selectTurmaNotas').value; if(!turmaKey) return;
     let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
-    if(!cloneDados.config_colunas) cloneDados.config_colunas = {};
-
-    const chavesColunas = Object.keys(cloneDados.config_colunas);
-
-    chavesColunas.forEach(key => {
-        const lbl = document.getElementById(`head_label_${key}`).value.trim();
-        const dt = document.getElementById(`head_date_${key}`).value.trim();
-        cloneDados.config_colunas[key] = { label: lbl || `Nota`, data: dt || "" };
+    Object.keys(cloneDados.config_colunas).forEach(k => {
+        cloneDados.config_colunas[k] = { label: document.getElementById(`head_label_${k}`).value.trim(), data: document.getElementById(`head_date_${k}`).value.trim() };
     });
+    document.getElementById('corpoTabelaNotas').querySelectorAll('.nota-input-dinamica').forEach(inp => {
+        const al = inp.getAttribute('data-aluno'); const nt = inp.getAttribute('data-nota');
+        if(cloneDados[al]) cloneDados[al][nt] = inp.value.trim();
+    });
+    set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => alert("Notas salvas!"));
+};
 
-    const inputsNotas = document.getElementById('corpoTabelaNotas').querySelectorAll('.nota-input-dinamica');
-    inputsNotas.forEach(input => {
-        const alunoId = input.getAttribute('data-aluno');
-        const colunaNota = input.getAttribute('data-nota');
-        const valor = input.value.trim();
 
-        if(cloneDados[alunoId]) {
-            cloneDados[alunoId][colunaNota] = valor;
+/* ==========================================================================
+   NOVO MÓDULO ADICIONADO: CADERNO DE VISTOS DIÁRIOS (FEZ / NÃO FEZ / FALTOU)
+   ========================================================================== */
+
+function carregarDadosCaderno() {
+    onValue(ref(db, 'diario_caderno'), (snapshot) => {
+        dadosCadernoFirebase = snapshot.val() || {};
+        const turmaAtiva = document.getElementById('selectTurmaCaderno').value;
+        if(turmaAtiva) renderizarTabelaCaderno(turmaAtiva);
+    });
+}
+
+document.getElementById('selectTurmaCaderno').onchange = (e) => {
+    renderizarTabelaCaderno(e.target.value);
+};
+
+function renderizarTabelaCaderno(turmaKey) {
+    const container = document.getElementById('container-tabela-caderno');
+    const header = document.getElementById('headerTabelaCaderno');
+    const corpo = document.getElementById('corpoTabelaCaderno');
+    const titulo = document.getElementById('tituloTurmaCaderno');
+    const select = document.getElementById('selectTurmaCaderno');
+
+    if (!turmaKey) { container.style.display = 'none'; return; }
+
+    titulo.innerText = `Caderno - ${select.options[select.selectedIndex].text}`;
+    container.style.display = 'block';
+
+    // Se o caderno da turma não existir, inicia estritamente com 4 atividades iniciais padrão
+    if (!dadosCadernoFirebase[turmaKey]) {
+        let cargaInicial = { config_colunas: {} };
+        for (let i = 1; i <= 4; i++) {
+            cargaInicial.config_colunas[`v${i}`] = { label: `Visto ${i}`, data: "" };
         }
+        const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
+        alunosPadrao.forEach((nomeAluno, index) => {
+            const idGerado = `aluno_${Date.now()}_${index}`;
+            cargaInicial[idGerado] = { nome: nomeAluno, v1: "", v2: "", v3: "", v4: "" };
+        });
+        set(ref(db, 'diario_caderno/' + turmaKey), cargaInicial);
+        return; 
+    }
+
+    const estruturaTurma = dadosCadernoFirebase[turmaKey];
+    const colunasConfig = estruturaTurma.config_colunas || {};
+    const chavesColunas = Object.keys(colunasConfig).sort((a,b) => parseInt(a.replace('v','')) - parseInt(b.replace('v','')));
+
+    // 1. MONTA CABEÇALHO DO CADERNO
+    let htmlHeader = `<th style="padding: 12px; text-align: left;">Estudante</th>`;
+    chavesColunas.forEach(key => {
+        const conf = colunasConfig[key] || { label: 'Visto', data: "" };
+        htmlHeader += `
+            <th style="padding: 10px; text-align: center; width: 110px; background: #2c3e50;">
+                <input type="text" class="header-input-title" id="cad_label_${key}" value="${conf.label}"><br>
+                <input type="text" class="header-input-date" id="cad_date_${key}" value="${conf.data}" placeholder="Data">
+            </th>`;
+    });
+    htmlHeader += `<th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
+    header.innerHTML = htmlHeader;
+
+    // 2. MONTA LINHAS DOS ALUNOS COM MENU SELETOR COLORIDO
+    corpo.innerHTML = "";
+    const listaAlunos = Object.keys(estruturaTurma).filter(key => key !== 'config_colunas')
+        .map(id => ({ id: id, ...estruturaTurma[id] })).sort((a, b) => a.nome.localeCompare(b.nome));
+
+    if (listaAlunos.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="${chavesColunas.length + 2}" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno no caderno.</td></tr>`;
+        return;
+    }
+
+    listaAlunos.forEach(aluno => {
+        let trHtml = `<td style="padding: 10px; font-weight: 500; color: #2c3e50;">${aluno.nome}</td>`;
+
+        chavesColunas.forEach(key => {
+            const valorAtual = aluno[key] || '';
+            
+            // Define a classe de cor de fundo baseada no status atual para resposta visual imediata
+            let classeCor = "select-omissao";
+            if (valorAtual === "FEZ") classeCor = "select-fez";
+            if (valorAtual === "NÃO FEZ") classeCor = "select-nao-fez";
+            if (valorAtual === "FALTOU") classeCor = "select-faltou";
+
+            trHtml += `
+                <td style="padding: 6px; text-align: center;">
+                    <select class="caderno-select-input ${classeCor}" data-aluno="${aluno.id}" data-visto="${key}">
+                        <option value="" ${valorAtual === '' ? 'selected' : ''}>-</option>
+                        <option value="FEZ" ${valorAtual === 'FEZ' ? 'selected' : ''}>FEZ</option>
+                        <option value="NÃO FEZ" ${valorAtual === 'NÃO FEZ' ? 'selected' : ''}>NÃO FEZ</option>
+                        <option value="FALTOU" ${valorAtual === 'FALTOU' ? 'selected' : ''}>FALTOU</option>
+                    </select>
+                </td>`;
+        });
+
+        trHtml += `<td style="padding: 10px; text-align: center;"><button class="btn-excluir-aluno-caderno" data-id="${aluno.id}">✕</button></td>`;
+        const tr = document.createElement('tr'); tr.style.borderBottom = "1px solid #f1f1f1"; tr.innerHTML = trHtml; corpo.appendChild(tr);
     });
 
-    set(ref(db, 'diario_notas/' + turmaKey), cloneDados)
-        .then(() => alert("Diário de notas salvo com sucesso!"))
-        .catch(err => alert("Erro ao sincronizar: " + err.message));
+    // Evento reativo para mudar as cores do select dinamicamente na tela ao alterar a opção
+    corpo.querySelectorAll('.caderno-select-input').forEach(selectInp => {
+        selectInp.onchange = () => {
+            selectInp.className = "caderno-select-input"; // reseta
+            if (selectInp.value === "FEZ") selectInp.classList.add("select-fez");
+            if (selectInp.value === "NÃO FEZ") selectInp.classList.add("select-nao-fez");
+            if (selectInp.value === "FALTOU") selectInp.classList.add("select-faltou");
+        };
+    });
+
+    corpo.querySelectorAll('.btn-excluir-aluno-caderno').forEach(btn => {
+        btn.onclick = () => { if (confirm("Remover estudante do caderno?")) remove(ref(db, `diario_caderno/${turmaKey}/${btn.getAttribute('data-id')}`)); };
+    });
+}
+
+// Lógica corrigida e fiel do botão dinâmico para incluir mais vistos no Caderno
+document.getElementById('btnAdicionarColunaCaderno').onclick = () => {
+    const turmaKey = document.getElementById('selectTurmaCaderno').value; if(!turmaKey) return alert("Selecione uma turma primeiro!");
+    let dadosAtuais = dadosCadernoFirebase[turmaKey] || {};
+    let cloneDados = JSON.parse(JSON.stringify(dadosAtuais));
+
+    if(!cloneDados.config_colunas) {
+        cloneDados.config_colunas = {};
+        for(let i = 1; i <= 4; i++) cloneDados.config_colunas[`v${i}`] = { label: `Visto ${i}`, data: "" };
+    }
+
+    const num = Object.keys(cloneDados.config_colunas).length + 1;
+    const novaChave = `v${num}`;
+
+    cloneDados.config_colunas[novaChave] = { label: `Visto ${num}`, data: "" };
+    Object.keys(cloneDados).forEach(k => { if(k !== 'config_colunas') cloneDados[k][novaChave] = ""; });
+
+    set(ref(db, 'diario_caderno/' + turmaKey), cloneDados).then(() => {
+        alert(`Coluna "Visto ${num}" incluída no caderno!`);
+    }).catch(err => alert("Erro ao expandir caderno: " + err.message));
+};
+
+document.getElementById('btnAdicionarAlunoCaderno').onclick = () => {
+    const turmaKey = document.getElementById('selectTurmaCaderno').value; const input = document.getElementById('novoAlunoNomeCaderno'); const nome = input.value.trim();
+    if (!turmaKey || !nome) return alert("Preencha os campos!");
+    const config = dadosCadernoFirebase[turmaKey]?.config_colunas || { v1: {}, v2: {}, v3: {}, v4: {} };
+    const nid = `aluno_${Date.now()}`; let obj = { nome: nome }; Object.keys(config).forEach(k => obj[k] = "");
+    set(ref(db, `diario_caderno/${turmaKey}/${nid}`), obj).then(() => input.value = "");
+};
+
+document.getElementById('btnSalvarCaderno').onclick = () => {
+    const turmaKey = document.getElementById('selectTurmaCaderno').value; if(!turmaKey) return;
+    let cloneDados = JSON.parse(JSON.stringify(dadosCadernoFirebase[turmaKey] || {}));
+    
+    Object.keys(cloneDados.config_colunas).forEach(k => {
+        cloneDados.config_colunas[k] = { label: document.getElementById(`cad_label_${k}`).value.trim(), data: document.getElementById(`cad_date_${k}`).value.trim() };
+    });
+    
+    document.getElementById('corpoTabelaCaderno').querySelectorAll('.caderno-select-input').forEach(selectInp => {
+        const al = selectInp.getAttribute('data-aluno'); const vt = selectInp.getAttribute('data-visto');
+        if(cloneDados[al]) cloneDados[al][vt] = selectInp.value;
+    });
+
+    set(ref(db, 'diario_caderno/' + turmaKey), cloneDados).then(() => alert("Caderno salvo com sucesso!"));
 };
