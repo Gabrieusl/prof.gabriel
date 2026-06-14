@@ -105,7 +105,7 @@ function carregarAgenda() {
             return;
         }
         chavesFiltradas.forEach(key => {
-            const ev = listaEventos[key];
+            const ev = listaEventEventos ? listaEventos[key] : ev;
             container.innerHTML += `<div class="agenda-item"><strong>📅 ${ev.data}</strong> ${ev.texto}<button class="btn-del-event" onclick="deletarEventoAgenda('${key}')">✕</button></div>`;
         });
     });
@@ -192,7 +192,7 @@ window.closeModal = () => { document.getElementById('modal').style.display = "no
 document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); document.getElementById('nextMonth').onclick = () => window.mudarMes(1);
 
 /* ==========================================================================
-   DIÁRIO DE NOTAS COM QUANTIDADE DE CAMPOS DINÂMICA (COMEÇA COM 4)
+   DIÁRIO DE NOTAS CONTROLADO DINAMICAMENTE (COMEÇA COM 4 COLUNAS FIÉIS)
    ========================================================================== */
 
 const listaAlunosPadrao = {
@@ -232,7 +232,7 @@ function renderizarTabelaNotas(turmaKey) {
     titulo.innerText = `Lançamento - ${select.options[select.selectedIndex].text}`;
     container.style.display = 'block';
 
-    // Se a turma estiver vazia na nuvem, inicia por padrão com 4 colunas de notas básicas
+    // Inicialização segura de turma nova estritamente com 4 colunas (n1 a n4)
     if (!dadosNotasFirebase[turmaKey]) {
         let cargaInicial = { config_colunas: {} };
         for (let i = 1; i <= 4; i++) {
@@ -252,12 +252,11 @@ function renderizarTabelaNotas(turmaKey) {
     const estruturaTurma = dadosNotasFirebase[turmaKey];
     const colunasConfig = estruturaTurma.config_colunas || {};
     
-    // Mapeia e descobre a quantidade real de chaves de nota criadas nesta turma
     const chavesColunas = Object.keys(colunasConfig).sort((a,b) => {
         return parseInt(a.replace('n','')) - parseInt(b.replace('n',''));
     });
 
-    // 1. CONSTRUÇÃO DO CABEÇALHO DINÂMICO BASEADO NO NÚMERO DE COLUNAS DO BANCO
+    // 1. CABEÇALHO DINÂMICO
     let htmlHeader = `<th style="padding: 12px; text-align: left;">Estudante</th>`;
     chavesColunas.forEach(key => {
         const conf = colunasConfig[key] || { label: 'Nota', data: "" };
@@ -272,7 +271,7 @@ function renderizarTabelaNotas(turmaKey) {
         <th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
     header.innerHTML = htmlHeader;
 
-    // 2. CONSTRUÇÃO DAS LINHAS DE ESTUDANTES
+    // 2. LINHAS DOS ALUNOS
     corpo.innerHTML = "";
     const listaAlunos = Object.keys(estruturaTurma)
         .filter(key => key !== 'config_colunas')
@@ -319,7 +318,6 @@ function renderizarTabelaNotas(turmaKey) {
         corpo.appendChild(tr);
     });
 
-    // Monitoramento reativo das médias locais na interface
     corpo.querySelectorAll('.nota-input-dinamica').forEach(input => {
         input.oninput = () => {
             const alunoId = input.getAttribute('data-aluno');
@@ -335,7 +333,6 @@ function renderizarTabelaNotas(turmaKey) {
         };
     });
 
-    // Exclusão de estudante
     corpo.querySelectorAll('.btn-excluir-aluno').forEach(btn => {
         btn.onclick = () => {
             const idAluno = btn.getAttribute('data-id');
@@ -347,21 +344,29 @@ function renderizarTabelaNotas(turmaKey) {
     });
 }
 
-// Evento para incluir um novo campo de notas customizado (ex: n5, n6...) à sua escolha
+// CORREÇÃO DEFINITIVA DO BOTÃO: Adiciona coluna com mapeamento limpo de objetos clonados
 document.getElementById('btnAdicionarColunaNota').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     if(!turmaKey) return alert("Selecione uma turma primeiro!");
 
-    let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
-    if(!cloneDados.config_colunas) cloneDados.config_colunas = {};
+    // Resgata o objeto direto da árvore local e garante o nó config_colunas limpo
+    let dadosAtuais = dadosNotasFirebase[turmaKey] || {};
+    let cloneDados = JSON.parse(JSON.stringify(dadosAtuais));
+    
+    if(!cloneDados.config_colunas) {
+        cloneDados.config_colunas = {};
+        for(let i = 1; i <= 4; i++) {
+            cloneDados.config_colunas[`n${i}`] = { label: `Nota ${i}`, data: "" };
+        }
+    }
 
     const numeroProximaColuna = Object.keys(cloneDados.config_colunas).length + 1;
     const novaChave = `n${numeroProximaColuna}`;
 
-    // Inicializa a nova coluna no cabeçalho
+    // Insere os metadados da nova coluna
     cloneDados.config_colunas[novaChave] = { label: `Nota ${numeroProximaColuna}`, data: "" };
 
-    // Inicializa a propriedade vazia para cada aluno existente na turma
+    // Garante que todos os estudantes recebam a nova chave vazia
     Object.keys(cloneDados).forEach(idKey => {
         if(idKey !== 'config_colunas') {
             cloneDados[idKey][novaChave] = "";
@@ -369,11 +374,10 @@ document.getElementById('btnAdicionarColunaNota').onclick = () => {
     });
 
     set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => {
-        alert(`Coluna "Nota ${numeroProximaColuna}" incluída com sucesso! Defina o título e salve.`);
-    });
+        alert(`Coluna "Nota ${numeroProximaColuna}" inserida!`);
+    }).catch(err => alert("Erro ao criar coluna: " + err.message));
 };
 
-// Inclusão manual de novo estudante
 document.getElementById('btnAdicionarAluno').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     const inputNome = document.getElementById('novoAlunoNome');
@@ -387,7 +391,6 @@ document.getElementById('btnAdicionarAluno').onclick = () => {
     const novoId = `aluno_${Date.now()}`;
     let corpoAluno = { nome: nome };
     
-    // Mapeia todas as colunas existentes para criar o aluno alinhado ao diário
     Object.keys(colunasConfig).forEach(key => {
         corpoAluno[key] = "";
     });
@@ -397,7 +400,6 @@ document.getElementById('btnAdicionarAluno').onclick = () => {
     });
 };
 
-// Salvar Notas, Rótulos e as Datas customizadas atuais na Nuvem
 document.getElementById('btnSalvarNotas').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     if(!turmaKey) return;
@@ -407,14 +409,12 @@ document.getElementById('btnSalvarNotas').onclick = () => {
 
     const chavesColunas = Object.keys(cloneDados.config_colunas);
 
-    // Salva os rótulos alterados do cabeçalho
     chavesColunas.forEach(key => {
         const lbl = document.getElementById(`head_label_${key}`).value.trim();
         const dt = document.getElementById(`head_date_${key}`).value.trim();
         cloneDados.config_colunas[key] = { label: lbl || `Nota`, data: dt || "" };
     });
 
-    // Salva as notas de cada aluno
     const inputsNotas = document.getElementById('corpoTabelaNotas').querySelectorAll('.nota-input-dinamica');
     inputsNotas.forEach(input => {
         const alunoId = input.getAttribute('data-aluno');
