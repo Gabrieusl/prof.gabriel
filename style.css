@@ -90,3 +90,17 @@ footer { text-align: center; padding: 12px; background: var(--dark); color: whit
 .nota-input-dinamica {
     width: 50px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 4px; font-weight: 500;
 }
+
+/* BOTÕES DE EXCLUSÃO DE ALUNOS */
+.btn-excluir-aluno, .btn-excluir-aluno-caderno {
+    background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
+}
+
+/* NOVO: ESTILOS DE COR DE RESPOSTA VISUAL PARA OS SELECTS DO CADERNO */
+.caderno-select-input {
+    width: 90px; padding: 6px; font-weight: bold; border-radius: 4px; text-align: center; border: 1px solid #ccc; cursor: pointer;
+}
+.select-omissao { background-color: #ffffff; color: #333; }
+.select-fez { background-color: #2ecc71 !important; color: white !important; }
+.select-nao-fez { background-color: #e74c3c !important; color: white !important; }
+.select-faltou { background-color: #95a5a6 !important; color: white !important; }
