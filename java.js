@@ -36,7 +36,7 @@ onAuthStateChanged(auth, (user) => {
         mainNav.style.display = 'flex';
         carregarDados();
         carregarAgenda();
-        carregarDadosNotas(); // ACRÉSCIMO: inicia o monitoramento do banco de notas
+        carregarDadosNotas(); 
     } else if (user) {
         alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
         signOut(auth);
@@ -78,8 +78,6 @@ const feriados2026 = {
 
 let dadosPlanejamento = {};
 let listaEventos = {};
-
-// ACRÉSCIMO: Variável de escopo global para armazenar as notas resgatadas da nuvem
 let dadosNotasFirebase = {};
 
 const dataDispositivo = new Date();
@@ -239,7 +237,6 @@ window.updateTable = () => {
     });
 };
 
-// MODIFICADO: Gerenciamento unificado de views integrando o notas-view
 window.showView = (v) => { 
     document.getElementById('calendar-view').style.display = v === 'calendar' ? 'block' : 'none'; 
     document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none'; 
@@ -252,22 +249,32 @@ document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); docume
 
 
 /* ==========================================================================
-   ACRÉSCIMO: MÓDULO EXCLUSIVO DE LANÇAMENTO E CÁLCULO DE NOTAS NO FIREBASE
+   ACRÉSCIMO COMPLETO: BANCO NOMINAL DE ALUNOS E GERENCIAMENTO DINÂMICO
    ========================================================================== */
+
+const listaAlunosPadrao = {
+    "6A_MAT": ["Adryan", "Agatha", "Amanda", "Arthur", "Chandele", "Davi Lucas", "Davi Luca", "Emilly", "Erick", "Evellyn", "Gabriela", "Guilherme", "Igor", "Jaine", "Jean", "João Vitor Bueno", "João Vitor Paixão", "Leticia", "Luiz Gabriel", "Maria Eduarda", "Maria Eloiza", "Paola", "Raylan", "Ruan", "Sophia", "Tayson", "Thaylline", "Vitor Gabriel", "Willian", "Arthur Zampieri", "Renato"],
+    "6A_REC": ["Adryan", "Agatha", "Amanda", "Arthur", "Chandele", "Davi Lucas", "Davi Luca", "Emilly", "Erick", "Evellyn", "Gabriela", "Guilherme", "Igor", "Jaine", "Jean", "João Vitor Bueno", "João Vitor Paixão", "Leticia", "Luiz Gabriel", "Maria Eduarda", "Maria Eloiza", "Paola", "Raylan", "Ruan", "Sophia", "Tayson", "Thaylline", "Vitor Gabriel", "Willian", "Arthur Zampieri", "Renato"],
+    "7A_MAT": ["Alan", "Allan", "Any", "Bárbara", "Breno Gustavo", "Bruno", "Carlos Eduardo", "Danilo", "Emanuel", "Esteffany", "Evelin", "Giovanna", "Isabelle", "Isabelly", "Jairo", "Julia", "Lara", "Luiz Otávio", "Micaelly", "Milena", "Renata", "Sofia", "Welison", "Yago", "Davi Luiz", "Marlon"],
+    "8A_MAT": ["Abner", "Alexandre", "Alex", "Ana Flavia", "Ana Paula", "Ana Vitória", "Andriele", "Breno Murilo", "César Henrique", "Cibele", "Claudinei", "David Nathan", "Emanuel", "Flavio", "Igor", "Kauan", "Lana", "Lucas", "Luiz Carlos", "Maria Eloara", "Matheus", "Nátali", "Pablo Junior", "Renata Aparecida", "Ryan", "Thaís", "Wesley"],
+    "9A_REC": ["Adryan", "Ana Paula", "Breno Iran", "Datah", "Emanuel", "Everton Felipe", "Fernanda", "Gabriel", "Graziely", "Gustavo Mendes", "Gusthavo Henrique", "Jonathan Eduardo", "Josiel", "Juliane", "Kauã Vinícius", "Leopoldo", "Maria Izabel", "Maria Luiza", "Mario Eduardo", "Mateus", "Murilo Henrique", "Natalia", "Natália Yasmim", "Pedro", "Pietro", "Rafael Antonio", "Rafaeli Cristina", "Rafael", "Samuel", "Thaemy", "Vitor Daniel", "Willy Otávio"],
+    "1A_MAT": ["Andre", "Augusto Junior", "Eder Kaua", "Eduarda Gabrielly", "Estefany", "Fabricio", "Gabriel", "Gabrielli", "Graziela Vitória", "Hayan", "Hendryk Gabriel", "Isabel Cristina", "Jennifer Kauane", "João Gabriel", "José Guilherme", "Kadu", "Kauã", "Kenedy Gustavo", "Luis Adriano", "Luna Maria", "Maria Klara", "Matheus Kalinoski", "Maycon", "Millena Graziela", "Nicolas Mateus", "Thiago Vinicius", "Vanessa Pires", "Victor Hugo", "Vanessa Milena", "Wesley Gabriel", "Yasmin Alves", "Livia", "Maria Vitória"],
+    "1A_FIN": ["Andre", "Augusto Junior", "Eder Kaua", "Eduarda Gabrielly", "Estefany", "Fabricio", "Gabriel", "Gabrielli", "Graziela Vitória", "Hayan", "Hendryk Gabriel", "Isabel Cristina", "Jennifer Kauane", "João Gabriel", "José Guilherme", "Kadu", "Kauã", "Kenedy Gustavo", "Luis Adriano", "Luna Maria", "Maria Klara", "Matheus Kalinoski", "Maycon", "Millena Graziela", "Nicolas Mateus", "Thiago Vinicius", "Vanessa Pires", "Victor Hugo", "Vanessa Milena", "Wesley Gabriel", "Yasmin Alves", "Livia", "Maria Vitória"],
+    "1A_DIG": ["Andre", "Augusto Junior", "Eder Kaua", "Eduarda Gabrielly", "Estefany", "Fabricio", "Gabriel", "Gabrielli", "Graziela Vitória", "Hayan", "Hendryk Gabriel", "Isabel Cristina", "Jennifer Kauane", "João Gabriel", "José Guilherme", "Kadu", "Kauã", "Kenedy Gustavo", "Luis Adriano", "Luna Maria", "Maria Klara", "Matheus Kalinoski", "Maycon", "Millena Graziela", "Nicolas Mateus", "Thiago Vinicius", "Vanessa Pires", "Victor Hugo", "Vanessa Milena", "Wesley Gabriel", "Yasmin Alves", "Livia", "Maria Vitória"],
+    "2A_FIN": ["Adrielly", "Ághata Vitória", "Emanuele", "Evellyn Vitória", "Gabriel", "Guilherme", "Henrique", "Isabela", "Jamile Vitória", "Jhony Entony", "Kauã", "Kauane", "Kemilly Crislaine", "Leticia", "Maisa Aparecida", "Maisa Maia", "Maria Geovana", "Matheus", "Nathaly Kutner", "Otavio Mateus", "Renan Gonçalves", "Thalyta Luciele", "Thiago Rafael", "Victor Emanuel", "Diego"],
+    "3A_FIN": ["André Gustavo", "Anik", "Anna Izabely", "Cassiano", "Cauã Gabriel", "Cezidio Vicente", "Daniel", "Everton Lucas", "Evilyn Gabrieli", "Flávio", "Gabriel de Méo", "Gabriely Ferreira", "Gladson Cauã", "Gustavo Mendes", "Janaina", "Jennifer Maria", "Julio Cesar", "Maiquel", "Nicole Andrade", "Paulo Guilherme", "Rafael Trindade", "Sabrina", "Bryan"]
+};
 
 function carregarDadosNotas() {
     onValue(ref(db, 'diario_notas'), (snapshot) => {
         dadosNotasFirebase = snapshot.val() || {};
-        // Se já houver turma selecionada na tela, atualiza a tabela em tempo real
         const turmaAtiva = document.getElementById('selectTurmaNotas').value;
         if(turmaAtiva) renderizarTabelaNotas(turmaAtiva);
     });
 }
 
-// Vincula o evento de mudança na seleção de turma para atualizar a tabela
 document.getElementById('selectTurmaNotas').onchange = (e) => {
-    const turma = e.target.value;
-    renderizarTabelaNotas(turma);
+    renderizarTabelaNotas(e.target.value);
 };
 
 function renderizarTabelaNotas(turmaKey) {
@@ -285,23 +292,39 @@ function renderizarTabelaNotas(turmaKey) {
     corpo.innerHTML = "";
     container.style.display = 'block';
 
-    // Lista fixa padrão com 10 slots de alunos estruturais para inicialização limpa da turma
-    let listaAlunos = [];
-    for(let i = 1; i <= 10; i++) {
-        listaAlunos.push({ id: `aluno_${i}`, nome: `Estudante Nº ${String(i).padStart(2, '0')}` });
+    // Se a turma não existir no banco da nuvem, cria a estrutura inicial com sua lista nominal fixa
+    if (!dadosNotasFirebase[turmaKey]) {
+        let cargaInicial = {};
+        const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
+        
+        alunosPadrao.forEach((nomeAluno, index) => {
+            const idGerado = `aluno_${Date.now()}_${index}`;
+            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "" };
+        });
+
+        // Envia imediatamente para dar persistência inicial ao banco remoto
+        set(ref(db, 'diario_notas/' + turmaKey), cargaInicial);
+        return; 
     }
 
-    // Busca dados preexistentes salvos nessa chave do Firebase
-    const dadosSalvosTurma = dadosNotasFirebase[turmaKey] || {};
+    const alunosDaTurma = dadosNotasFirebase[turmaKey];
 
-    listaAlunos.forEach(aluno => {
-        const notasAluno = dadosSalvosTurma[aluno.id] || { n1: "", n2: "", n3: "" };
-        
-        // Calcula média em tempo real se houver valores numéricos informados
+    // Ordena os alunos em ordem alfabética para facilitar a chamada
+    const alunosOrdenados = Object.keys(alunosDaTurma).map(id => ({
+        id: id,
+        ...alunosDaTurma[id]
+    })).sort((a, b) => a.nome.localeCompare(b.nome));
+
+    if (alunosOrdenados.length === 0) {
+        corpo.innerHTML = `<tr><td colspan="6" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno matriculado nesta turma.</td></tr>`;
+        return;
+    }
+
+    alunosOrdenados.forEach(aluno => {
         let mediaDisplay = "-";
-        const v1 = parseFloat(notasAluno.n1);
-        const v2 = parseFloat(notasAluno.n2);
-        const v3 = parseFloat(notasAluno.n3);
+        const v1 = parseFloat(aluno.n1);
+        const v2 = parseFloat(aluno.n2);
+        const v3 = parseFloat(aluno.n3);
         if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
             mediaDisplay = ((v1 + v2 + v3) / 3).toFixed(1);
         }
@@ -310,24 +333,26 @@ function renderizarTabelaNotas(turmaKey) {
         tr.style.borderBottom = "1px solid #f1f1f1";
         tr.innerHTML = `
             <td style="padding: 12px; font-weight: 500;">${aluno.nome}</td>
-            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n1" value="${notasAluno.n1}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
-            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n2" value="${notasAluno.n2}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
-            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n3" value="${notasAluno.n3}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
-            <td style="padding: 12px; text-align: center; font-weight: bold; id="med_${aluno.id}">${mediaDisplay}</td>
+            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n1" value="${aluno.n1 || ''}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
+            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n2" value="${aluno.n2 || ''}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
+            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n3" value="${aluno.n3 || ''}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
+            <td style="padding: 12px; text-align: center; font-weight: bold;">${mediaDisplay}</td>
+            <td style="padding: 12px; text-align: center;">
+                <button class="btn-excluir-aluno" data-id="${aluno.id}" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;">✕</button>
+            </td>
         `;
         corpo.appendChild(tr);
     });
 
-    // Vincula escuta de eventos nos inputs para calcular a média de forma reativa na interface
-    const inputs = corpo.querySelectorAll('.nota-input');
-    inputs.forEach(input => {
+    // Escuta de alteração de campos para atualizar médias na tela de forma ágil
+    corpo.querySelectorAll('.nota-input').forEach(input => {
         input.oninput = () => {
             const alunoId = input.getAttribute('data-aluno');
             const inputsDoAluno = corpo.querySelectorAll(`.nota-input[data-aluno="${alunoId}"]`);
             const v1 = parseFloat(inputsDoAluno[0].value);
             const v2 = parseFloat(inputsDoAluno[1].value);
             const v3 = parseFloat(inputsDoAluno[2].value);
-            const tdMedia = input.closest('tr').querySelector('td:last-child');
+            const tdMedia = input.closest('tr').querySelector('td:nth-child(5)');
             
             if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
                 tdMedia.innerHTML = ((v1 + v2 + v3) / 3).toFixed(1);
@@ -336,7 +361,42 @@ function renderizarTabelaNotas(turmaKey) {
             }
         };
     });
+
+    // Vincula ação dos botões de exclusão individual de alunos
+    corpo.querySelectorAll('.btn-excluir-aluno').forEach(btn => {
+        btn.onclick = () => {
+            const idAluno = btn.getAttribute('data-id');
+            const nomeAluno = alunosDaTurma[idAluno].nome;
+            if (confirm(`Tem certeza que deseja remover o(a) aluno(a) "${nomeAluno}" desta turma?`)) {
+                remove(ref(db, `diario_notas/${turmaKey}/${idAluno}`))
+                    .then(() => alert("Aluno removido com sucesso!"));
+            }
+        };
+    });
 }
+
+// Lógica de inclusão manual de novos estudantes na lista
+document.getElementById('btnAdicionarAluno').onclick = () => {
+    const turmaKey = document.getElementById('selectTurmaNotas').value;
+    const inputNome = document.getElementById('novoAlunoNome');
+    const nome = inputNome.value.trim();
+
+    if (!turmaKey) return;
+    if (!nome) return alert("Digite o nome do aluno para incluí-lo!");
+
+    const novoId = `aluno_${Date.now()}`;
+    
+    // Insere o novo nó diretamente na coleção estruturada da turma correspondente
+    set(ref(db, `diario_notas/${turmaKey}/${novoId}`), {
+        nome: nome,
+        n1: "",
+        n2: "",
+        n3: ""
+    }).then(() => {
+        inputNome.value = "";
+        alert(`Aluno "${nome}" adicionado com sucesso!`);
+    }).catch(err => alert("Erro ao adicionar aluno: " + err.message));
+};
 
 document.getElementById('btnSalvarNotas').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
@@ -344,20 +404,20 @@ document.getElementById('btnSalvarNotas').onclick = () => {
 
     const corpo = document.getElementById('corpoTabelaNotas');
     const inputs = corpo.querySelectorAll('.nota-input');
-    let dadosParaSalvar = {};
+    
+    // Clona o estado atual da turma para não apagar os nomes ao atualizar as notas
+    let dadosParaSalvar = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
 
     inputs.forEach(input => {
         const alunoId = input.getAttribute('data-aluno');
         const tipoNota = input.getAttribute('data-nota');
         const valor = input.value.trim();
 
-        if(!dadosParaSalvar[alunoId]) {
-            dadosParaSalvar[alunoId] = { n1: "", n2: "", n3: "" };
+        if(dadosParaSalvar[alunoId]) {
+            dadosParaSalvar[alunoId][tipoNota] = valor;
         }
-        dadosParaSalvar[alunoId][tipoNota] = valor;
     });
 
-    // Envia o payload completo da estrutura de notas para a tabela correspondente no Realtime Database
     set(ref(db, 'diario_notas/' + turmaKey), dadosParaSalvar)
         .then(() => alert("Notas sincronizadas com a nuvem com sucesso!"))
         .catch(err => alert("Erro ao salvar notas: " + err.message));
