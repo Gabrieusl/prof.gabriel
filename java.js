@@ -37,7 +37,7 @@ onAuthStateChanged(auth, (user) => {
         carregarDados();
         carregarAgenda();
         carregarDadosNotas(); 
-        carregarDadosCaderno(); // Inicializa monitoramento do Caderno
+        carregarDadosCaderno(); 
     } else if (user) {
         alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
         signOut(auth);
@@ -80,7 +80,7 @@ const feriados2026 = {
 let dadosPlanejamento = {};
 let listaEventos = {};
 let dadosNotasFirebase = {};
-let dadosCadernoFirebase = {}; // Estrutura em tempo real do Caderno
+let dadosCadernoFirebase = {};
 
 const dataDispositivo = new Date();
 let currentMonth = dataDispositivo.getMonth(); 
@@ -107,7 +107,7 @@ function carregarAgenda() {
             return;
         }
         chavesFiltradas.forEach(key => {
-            const ev = listaEventos ? listaEventos[key] : ev;
+            const ev = listaEventos[key];
             container.innerHTML += `<div class="agenda-item"><strong>📅 ${ev.data}</strong> ${ev.texto}<button class="btn-del-event" onclick="deletarEventoAgenda('${key}')">✕</button></div>`;
         });
     });
@@ -185,12 +185,12 @@ window.updateTable = () => {
     });
 };
 
-// ATUALIZADO: Gerenciamento limpo de views incluindo a do caderno
 window.showView = (v) => { 
     document.getElementById('calendar-view').style.display = v === 'calendar' ? 'block' : 'none'; 
     document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none'; 
     document.getElementById('notas-view').style.display = v === 'notas' ? 'block' : 'none'; 
     document.getElementById('caderno-view').style.display = v === 'caderno' ? 'block' : 'none'; 
+    if(v === 'table') updateTable();
 };
 window.closeModal = () => { document.getElementById('modal').style.display = "none"; };
 document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); document.getElementById('nextMonth').onclick = () => window.mudarMes(1);
@@ -334,9 +334,8 @@ document.getElementById('btnSalvarNotas').onclick = () => {
     set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => alert("Notas salvas!"));
 };
 
-
 /* ==========================================================================
-   NOVO MÓDULO ADICIONADO: CADERNO DE VISTOS DIÁRIOS (FEZ / NÃO FEZ / FALTOU)
+   MÓDULO: CADERNO DE VISTOS DIÁRIOS (FEZ / NÃO FEZ / FALTOU)
    ========================================================================== */
 
 function carregarDadosCaderno() {
@@ -363,7 +362,6 @@ function renderizarTabelaCaderno(turmaKey) {
     titulo.innerText = `Caderno - ${select.options[select.selectedIndex].text}`;
     container.style.display = 'block';
 
-    // Se o caderno da turma não existir, inicia estritamente com 4 atividades iniciais padrão
     if (!dadosCadernoFirebase[turmaKey]) {
         let cargaInicial = { config_colunas: {} };
         for (let i = 1; i <= 4; i++) {
@@ -382,7 +380,6 @@ function renderizarTabelaCaderno(turmaKey) {
     const colunasConfig = estruturaTurma.config_colunas || {};
     const chavesColunas = Object.keys(colunasConfig).sort((a,b) => parseInt(a.replace('v','')) - parseInt(b.replace('v','')));
 
-    // 1. MONTA CABEÇALHO DO CADERNO
     let htmlHeader = `<th style="padding: 12px; text-align: left;">Estudante</th>`;
     chavesColunas.forEach(key => {
         const conf = colunasConfig[key] || { label: 'Visto', data: "" };
@@ -395,7 +392,6 @@ function renderizarTabelaCaderno(turmaKey) {
     htmlHeader += `<th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
     header.innerHTML = htmlHeader;
 
-    // 2. MONTA LINHAS DOS ALUNOS COM MENU SELETOR COLORIDO
     corpo.innerHTML = "";
     const listaAlunos = Object.keys(estruturaTurma).filter(key => key !== 'config_colunas')
         .map(id => ({ id: id, ...estruturaTurma[id] })).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -411,7 +407,6 @@ function renderizarTabelaCaderno(turmaKey) {
         chavesColunas.forEach(key => {
             const valorAtual = aluno[key] || '';
             
-            // Define a classe de cor de fundo baseada no status atual para resposta visual imediata
             let classeCor = "select-omissao";
             if (valorAtual === "FEZ") classeCor = "select-fez";
             if (valorAtual === "NÃO FEZ") classeCor = "select-nao-fez";
@@ -432,10 +427,9 @@ function renderizarTabelaCaderno(turmaKey) {
         const tr = document.createElement('tr'); tr.style.borderBottom = "1px solid #f1f1f1"; tr.innerHTML = trHtml; corpo.appendChild(tr);
     });
 
-    // Evento reativo para mudar as cores do select dinamicamente na tela ao alterar a opção
     corpo.querySelectorAll('.caderno-select-input').forEach(selectInp => {
         selectInp.onchange = () => {
-            selectInp.className = "caderno-select-input"; // reseta
+            selectInp.className = "caderno-select-input"; 
             if (selectInp.value === "FEZ") selectInp.classList.add("select-fez");
             if (selectInp.value === "NÃO FEZ") selectInp.classList.add("select-nao-fez");
             if (selectInp.value === "FALTOU") selectInp.classList.add("select-faltou");
@@ -447,7 +441,6 @@ function renderizarTabelaCaderno(turmaKey) {
     });
 }
 
-// Lógica corrigida e fiel do botão dinâmico para incluir mais vistos no Caderno
 document.getElementById('btnAdicionarColunaCaderno').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaCaderno').value; if(!turmaKey) return alert("Selecione uma turma primeiro!");
     let dadosAtuais = dadosCadernoFirebase[turmaKey] || {};
@@ -464,9 +457,7 @@ document.getElementById('btnAdicionarColunaCaderno').onclick = () => {
     cloneDados.config_colunas[novaChave] = { label: `Visto ${num}`, data: "" };
     Object.keys(cloneDados).forEach(k => { if(k !== 'config_colunas') cloneDados[k][novaChave] = ""; });
 
-    set(ref(db, 'diario_caderno/' + turmaKey), cloneDados).then(() => {
-        alert(`Coluna "Visto ${num}" incluída no caderno!`);
-    }).catch(err => alert("Erro ao expandir caderno: " + err.message));
+    set(ref(db, 'diario_caderno/' + turmaKey), cloneDados).catch(err => alert("Erro ao expandir caderno: " + err.message));
 };
 
 document.getElementById('btnAdicionarAlunoCaderno').onclick = () => {
