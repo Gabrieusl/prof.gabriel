@@ -36,6 +36,7 @@ onAuthStateChanged(auth, (user) => {
         mainNav.style.display = 'flex';
         carregarDados();
         carregarAgenda();
+        carregarDadosNotas(); // ACRÉSCIMO: inicia o monitoramento do banco de notas
     } else if (user) {
         alert("Acesso negado. Apenas o Prof. Gabriel Lima tem permissão.");
         signOut(auth);
@@ -78,7 +79,9 @@ const feriados2026 = {
 let dadosPlanejamento = {};
 let listaEventos = {};
 
-// CAPTURA O MÊS E ANO ATUAIS AUTOMATICAMENTE AO ABRIR O SITE
+// ACRÉSCIMO: Variável de escopo global para armazenar as notas resgatadas da nuvem
+let dadosNotasFirebase = {};
+
 const dataDispositivo = new Date();
 let currentMonth = dataDispositivo.getMonth(); 
 let currentYear = dataDispositivo.getFullYear(); 
@@ -92,16 +95,15 @@ function carregarDados() {
     });
 }
 
-// REALTIME PARA COMPONENTE DA AGENDA DE EVENTOS
 function carregarAgenda() {
     onValue(ref(db, 'eventos_importantes'), (snapshot) => {
         listaEventos = snapshot.val() || {};
         const container = document.getElementById('agendaList');
-        if (!container) return; // Salvaguarda caso o elemento não exista na view atual
+        if (!container) return; 
         container.innerHTML = "";
         
-        const chaves = Object.keys(listaEventEventos);
-        const chavesFiltradas = chaves.filter(k => listaEventos[k]); // Evita leitura de chaves nulas
+        const chaves = Object.keys(listaEventos);
+        const chavesFiltradas = chaves.filter(k => listaEventos[k]); 
         
         if(chavesFiltradas.length === 0) {
             container.innerHTML = `<p style="color:#7f8c8d; font-size:0.85rem;">Nenhum evento agendado.</p>`;
@@ -143,7 +145,6 @@ window.mudarMes = (direcao) => {
     if (novoMes > 11) { novoMes = 0; novoAno++; }
     else if (novoMes < 0) { novoMes = 11; novoAno--; }
 
-    // Ajustado para permitir a navegação se o mês atual inicial estiver fora do escopo letivo padrão (ex: se abrir em Janeiro/Julho)
     if (novoAno === 2026) {
         currentMonth = novoMes; currentYear = novoAno;
         renderCalendar();
@@ -238,10 +239,126 @@ window.updateTable = () => {
     });
 };
 
+// MODIFICADO: Gerenciamento unificado de views integrando o notas-view
 window.showView = (v) => { 
     document.getElementById('calendar-view').style.display = v === 'calendar' ? 'block' : 'none'; 
     document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none'; 
+    document.getElementById('notas-view').style.display = v === 'notas' ? 'block' : 'none'; 
     if(v === 'table') updateTable();
 };
+
 window.closeModal = () => { document.getElementById('modal').style.display = "none"; };
 document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); document.getElementById('nextMonth').onclick = () => window.mudarMes(1);
+
+
+/* ==========================================================================
+   ACRÉSCIMO: MÓDULO EXCLUSIVO DE LANÇAMENTO E CÁLCULO DE NOTAS NO FIREBASE
+   ========================================================================== */
+
+function carregarDadosNotas() {
+    onValue(ref(db, 'diario_notas'), (snapshot) => {
+        dadosNotasFirebase = snapshot.val() || {};
+        // Se já houver turma selecionada na tela, atualiza a tabela em tempo real
+        const turmaAtiva = document.getElementById('selectTurmaNotas').value;
+        if(turmaAtiva) renderizarTabelaNotas(turmaAtiva);
+    });
+}
+
+// Vincula o evento de mudança na seleção de turma para atualizar a tabela
+document.getElementById('selectTurmaNotas').onchange = (e) => {
+    const turma = e.target.value;
+    renderizarTabelaNotas(turma);
+};
+
+function renderizarTabelaNotas(turmaKey) {
+    const container = document.getElementById('container-tabela-notas');
+    const corpo = document.getElementById('corpoTabelaNotas');
+    const titulo = document.getElementById('tituloTurmaNotas');
+    const select = document.getElementById('selectTurmaNotas');
+
+    if (!turmaKey) {
+        container.style.display = 'none';
+        return;
+    }
+
+    titulo.innerText = `Lançamento - ${select.options[select.selectedIndex].text}`;
+    corpo.innerHTML = "";
+    container.style.display = 'block';
+
+    // Lista fixa padrão com 10 slots de alunos estruturais para inicialização limpa da turma
+    let listaAlunos = [];
+    for(let i = 1; i <= 10; i++) {
+        listaAlunos.push({ id: `aluno_${i}`, nome: `Estudante Nº ${String(i).padStart(2, '0')}` });
+    }
+
+    // Busca dados preexistentes salvos nessa chave do Firebase
+    const dadosSalvosTurma = dadosNotasFirebase[turmaKey] || {};
+
+    listaAlunos.forEach(aluno => {
+        const notasAluno = dadosSalvosTurma[aluno.id] || { n1: "", n2: "", n3: "" };
+        
+        // Calcula média em tempo real se houver valores numéricos informados
+        let mediaDisplay = "-";
+        const v1 = parseFloat(notasAluno.n1);
+        const v2 = parseFloat(notasAluno.n2);
+        const v3 = parseFloat(notasAluno.n3);
+        if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
+            mediaDisplay = ((v1 + v2 + v3) / 3).toFixed(1);
+        }
+
+        const tr = document.createElement('tr');
+        tr.style.borderBottom = "1px solid #f1f1f1";
+        tr.innerHTML = `
+            <td style="padding: 12px; font-weight: 500;">${aluno.nome}</td>
+            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n1" value="${notasAluno.n1}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
+            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n2" value="${notasAluno.n2}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
+            <td style="padding: 12px; text-align: center;"><input type="number" min="0" max="10" step="0.1" class="nota-input" data-aluno="${aluno.id}" data-nota="n3" value="${notasAluno.n3}" style="width: 70px; padding: 6px; text-align: center; border: 1px solid #ccc; border-radius: 4px;"></td>
+            <td style="padding: 12px; text-align: center; font-weight: bold; id="med_${aluno.id}">${mediaDisplay}</td>
+        `;
+        corpo.appendChild(tr);
+    });
+
+    // Vincula escuta de eventos nos inputs para calcular a média de forma reativa na interface
+    const inputs = corpo.querySelectorAll('.nota-input');
+    inputs.forEach(input => {
+        input.oninput = () => {
+            const alunoId = input.getAttribute('data-aluno');
+            const inputsDoAluno = corpo.querySelectorAll(`.nota-input[data-aluno="${alunoId}"]`);
+            const v1 = parseFloat(inputsDoAluno[0].value);
+            const v2 = parseFloat(inputsDoAluno[1].value);
+            const v3 = parseFloat(inputsDoAluno[2].value);
+            const tdMedia = input.closest('tr').querySelector('td:last-child');
+            
+            if(!isNaN(v1) && !isNaN(v2) && !isNaN(v3)) {
+                tdMedia.innerHTML = ((v1 + v2 + v3) / 3).toFixed(1);
+            } else {
+                tdMedia.innerHTML = "-";
+            }
+        };
+    });
+}
+
+document.getElementById('btnSalvarNotas').onclick = () => {
+    const turmaKey = document.getElementById('selectTurmaNotas').value;
+    if(!turmaKey) return;
+
+    const corpo = document.getElementById('corpoTabelaNotas');
+    const inputs = corpo.querySelectorAll('.nota-input');
+    let dadosParaSalvar = {};
+
+    inputs.forEach(input => {
+        const alunoId = input.getAttribute('data-aluno');
+        const tipoNota = input.getAttribute('data-nota');
+        const valor = input.value.trim();
+
+        if(!dadosParaSalvar[alunoId]) {
+            dadosParaSalvar[alunoId] = { n1: "", n2: "", n3: "" };
+        }
+        dadosParaSalvar[alunoId][tipoNota] = valor;
+    });
+
+    // Envia o payload completo da estrutura de notas para a tabela correspondente no Realtime Database
+    set(ref(db, 'diario_notas/' + turmaKey), dadosParaSalvar)
+        .then(() => alert("Notas sincronizadas com a nuvem com sucesso!"))
+        .catch(err => alert("Erro ao salvar notas: " + err.message));
+};
