@@ -117,8 +117,15 @@
 
                     <div id="container-tabela-notas" style="display: none; margin-top: 20px;">
                         <h3 id="tituloTurmaNotas" style="color: #34495e; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px;"></h3>
+                        
+                        <div style="background: #f8f9fa; padding: 12px; border-radius: 5px; margin-bottom: 15px; display: flex; gap: 10px; align-items: center;">
+                            <strong style="font-size: 0.9rem; color: #555;">➕ Incluir Aluno:</strong>
+                            <input type="text" id="novoAlunoNome" placeholder="Nome completo do estudante" style="padding: 8px; flex: 1; border: 1px solid #ccc; border-radius: 4px;">
+                            <button id="btnAdicionarAluno" style="background: #3498db; color: white; border: none; padding: 8px 15px; font-weight: bold; border-radius: 4px; cursor: pointer;">Adicionar</button>
+                        </div>
+
                         <div class="table-container" style="overflow-x: auto; margin-top: 15px;">
-                            <table style="width: 100%; border-collapse: collapse; min-width: 600px;">
+                            <table style="width: 100%; border-collapse: collapse; min-width: 650px;">
                                 <thead>
                                     <tr style="background-color: #2c3e50; color: white;">
                                         <th style="padding: 12px; text-align: left;">Estudante</th>
@@ -126,6 +133,7 @@
                                         <th style="padding: 12px; width: 100px; text-align: center;">Nota 2</th>
                                         <th style="padding: 12px; width: 100px; text-align: center;">Trabalho</th>
                                         <th style="padding: 12px; width: 100px; text-align: center;">Média</th>
+                                        <th style="padding: 12px; width: 80px; text-align: center;">Ações</th>
                                     </tr>
                                 </thead>
                                 <tbody id="corpoTabelaNotas">
@@ -134,7 +142,7 @@
                         </div>
                         <div style="margin-top: 20px; text-align: right;">
                             <button id="btnSalvarNotas" style="background: #2ecc71; color: white; border: none; padding: 12px 30px; font-weight: bold; border-radius: 5px; cursor: pointer; transition: 0.2s;">
-                                💾 Salvar na Nuvem
+                                💾 Salvar Notas na Nuvem
                             </button>
                         </div>
                     </div>
