@@ -33,7 +33,7 @@ onAuthStateChanged(auth, (user) => {
     if (user && emailsAutorizados.map(e => e.toLowerCase()).includes(user.email.toLowerCase())) { 
         loginView.style.display = 'none';
         appContent.style.display = 'block';
-        mainNav.style.display = 'flex'; // Mantém o flex unificado do cabeçalho
+        mainNav.style.display = 'flex'; 
         carregarDados();
         carregarAgenda();
         carregarDadosNotas(); 
@@ -99,22 +99,14 @@ function carregarAgenda() {
         const container = document.getElementById('agendaList');
         if (!container) return; 
         container.innerHTML = "";
-        
-        const chaves = Object.keys(listaEventos);
-        const chavesFiltradas = chaves.filter(k => listaEventos[k]); 
-        
+        const chavesFiltradas = Object.keys(listaEventos).filter(k => listaEventos[k]); 
         if(chavesFiltradas.length === 0) {
             container.innerHTML = `<p style="color:#7f8c8d; font-size:0.85rem;">Nenhum evento agendado.</p>`;
             return;
         }
-
         chavesFiltradas.forEach(key => {
             const ev = listaEventos[key];
-            container.innerHTML += `
-                <div class="agenda-item">
-                    <strong>📅 ${ev.data}</strong> ${ev.texto}
-                    <button class="btn-del-event" onclick="deletarEventoAgenda('${key}')">✕</button>
-                </div>`;
+            container.innerHTML += `<div class="agenda-item"><strong>📅 ${ev.data}</strong> ${ev.texto}<button class="btn-del-event" onclick="deletarEventoAgenda('${key}')">✕</button></div>`;
         });
     });
 }
@@ -122,41 +114,14 @@ function carregarAgenda() {
 window.adicionarEventoAgenda = () => {
     const dataInput = document.getElementById('eventDate').value.trim();
     const textoInput = document.getElementById('eventText').value.trim();
-    if(!dataInput || !textoInput) return alert("Preencha a data e a descrição do marco!");
-    
-    const novoRef = push(ref(db, 'eventos_importantes'));
-    set(novoRef, { data: dataInput, texto: textoInput }).then(() => {
-        document.getElementById('eventDate').value = "";
-        document.getElementById('eventText').value = "";
+    if(!dataInput || !textoInput) return alert("Preencha a data e a descrição!");
+    push(ref(db, 'eventos_importantes'), { data: dataInput, texto: textoInput }).then(() => {
+        document.getElementById('eventDate').value = ""; document.getElementById('eventText').value = "";
     });
 };
 
-window.deletarEventoAgenda = (id) => {
-    if(confirm("Deseja remover este marco da agenda?")) {
-        remove(ref(db, 'eventos_importantes/' + id));
-    }
-};
-
-window.mudarMes = (direcao) => {
-    let novoMes = currentMonth + direcao;
-    let novoAno = currentYear;
-    if (novoMes > 11) { novoMes = 0; novoAno++; }
-    else if (novoMes < 0) { novoMes = 11; novoAno--; }
-
-    if (novoAno === 2026) {
-        currentMonth = novoMes; currentYear = novoAno;
-        renderCalendar();
-    }
-};
-
-function isFerias(dateStr) {
-    const d = new Date(dateStr + "T12:00:00");
-    const julI = new Date("2026-07-13T12:00:00"); const julF = new Date("2026-07-24T12:00:00");
-    const dezI = new Date("2026-12-21T12:00:00");
-    if (d >= julI && d <= julF) return "Férias de Julho";
-    if (d >= dezI) return "Férias de Dezembro";
-    return null;
-}
+window.deletarEventoAgenda = (id) => { if(confirm("Remover evento?")) remove(ref(db, 'eventos_importantes/' + id)); };
+window.mudarMes = (direcao) => { let nm = currentMonth + direcao; if (nm >= 0 && nm <= 11) { currentMonth = nm; renderCalendar(); } };
 
 function renderCalendar() {
     const grid = document.getElementById('calendarGrid'); if(!grid) return; grid.innerHTML = "";
@@ -171,67 +136,48 @@ function renderCalendar() {
         let diaSemana = diaData.toLocaleString('pt-br', { weekday: 'short' }).replace('.','');
         diaSemana = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1).toLowerCase();
         let isWeekend = (diaData.getDay() === 0 || diaData.getDay() === 6);
-        let holidayName = feriados2026[dataFormatada]; let feriasName = isFerias(dataFormatada);
+        let holidayName = feriados2026[dataFormatada];
         let status = isWeekend ? "status-weekend" : "status-empty";
         let contentInside = `<span>${diaSemana}</span>`;
 
-        if (holidayName || feriasName) { 
-            status = "status-holiday"; contentInside = `<span class="holiday-name">😊<br>${holidayName || feriasName}</span>`; 
-        } else if (!isWeekend && dadosPlanejamento[dataFormatada]) {
-            let preenchidos = dadosPlanejamento[dataFormatada].filter(a => a.conteudo && a.conteudo.trim() !== "").length;
-            if(preenchidos > 0) status = preenchidos === dadosPlanejamento[dataFormatada].length ? "status-full" : "status-partial";
+        if (holidayName) { status = "status-holiday"; contentInside = `<span class="holiday-name">😊<br>${holidayName}</span>`; }
+        else if (!isWeekend && dadosPlanejamento[dataFormatada]) {
+            let pr = dadosPlanejamento[dataFormatada].filter(a => a.conteudo && a.conteudo.trim() !== "").length;
+            if(pr > 0) status = pr === dadosPlanejamento[dataFormatada].length ? "status-full" : "status-partial";
         }
-
         const div = document.createElement('div'); div.className = `day-card ${status}`;
-        if(!(status === 'status-holiday' || isWeekend)) div.onclick = () => window.openDay(dataFormatada, diaSemana);
+        if(!(holidayName || isWeekend)) div.onclick = () => window.openDay(dataFormatada, diaSemana);
         div.innerHTML = `<span style="font-weight:bold">${d}</span>${contentInside}`;
         grid.appendChild(div);
     }
 }
 
 window.openDay = (date, dia) => {
-    selectedDateKey = date; const modal = document.getElementById('modal'); const container = document.getElementById('classInputs');
-    document.getElementById('modalDateTitle').innerText = `Planejamento: ${date.split('-').reverse().join('/')}`;
-    container.innerHTML = "";
+    selectedDateKey = date; document.getElementById('modalDateTitle').innerText = `Planejamento: ${date.split('-').reverse().join('/')}`;
+    const container = document.getElementById('classInputs'); container.innerHTML = "";
     let aulas = dadosPlanejamento[date] || (gradeFixa[dia] || []).map(g => ({...g, conteudo: "", anexo: ""}));
     aulas.forEach((aula, i) => {
-        container.innerHTML += `<div class="class-edit-row"><strong>${aula.turma} - ${aula.disc}</strong><input type="text" id="c_${i}" value="${aula.conteudo || ''}" placeholder="Conteúdo da aula"><input type="text" id="a_${i}" value="${aula.anexo || ''}" placeholder="Link do anexo (Drive, Video, etc)"></div>`;
+        container.innerHTML += `<div class="class-edit-row"><strong>${aula.turma} - ${aula.disc}</strong><input type="text" id="c_${i}" value="${aula.conteudo || ''}"><input type="text" id="a_${i}" value="${aula.anexo || ''}"></div>`;
     });
-    modal.style.display = "block";
+    document.getElementById('modal').style.display = "block";
 };
 
 window.saveData = () => {
     const dateObj = new Date(selectedDateKey + "T12:00:00");
     let dia = dateObj.toLocaleString('pt-br', { weekday: 'short' }).replace('.','');
     dia = dia.charAt(0).toUpperCase() + dia.slice(1).toLowerCase();
-    const base = gradeFixa[dia] || [];
-    const novosDados = base.map((aula, i) => ({ ...aula, conteudo: document.getElementById(`c_${i}`).value, anexo: document.getElementById(`a_${i}`).value }));
+    const novosDados = (gradeFixa[dia] || []).map((aula, i) => ({ ...aula, conteudo: document.getElementById(`c_${i}`).value, anexo: document.getElementById(`a_${i}`).value }));
     set(ref(db, 'planejamentos/' + selectedDateKey), novosDados).then(() => { document.getElementById('modal').style.display = 'none'; });
 };
 
 window.updateTable = () => {
     const tbody = document.getElementById('tableBody'); if(!tbody) return;
-    const filtroDataInput = document.getElementById('searchData').value; 
-    const fTurma = document.getElementById('searchTurma').value; 
-    const fMateria = document.getElementById('searchMateria').value;
-    let dataFiltroFormatada = filtroDataInput ? filtroDataInput.split('-').reverse().join('/') : "";
-
     tbody.innerHTML = "";
     Object.keys(dadosPlanejamento).sort().forEach(date => {
         const dataBR = date.split('-').reverse().join('/');
         dadosPlanejamento[date].forEach(aula => {
-            const bateData = dataFiltroFormatada === "" || dataBR === dataFiltroFormatada;
-            const bateTurma = fTurma === "" || aula.turma === fTurma;
-            const bateMateria = fMateria === "" || aula.disc === fMateria;
-
-            if(bateData && bateTurma && bateMateria && aula.conteudo.trim() !== "") {
-                let anexoDisplay = "";
-                if (aula.anexo && aula.anexo.trim() !== "") {
-                    let url = aula.anexo.trim();
-                    if (!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
-                    anexoDisplay = `<a href="${url}" target="_blank" class="btn-link">🔗 Abrir Link</a>`;
-                }
-                tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${anexoDisplay}</td></tr>`;
+            if(aula.conteudo && aula.conteudo.trim() !== "") {
+                tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${aula.anexo || ''}</td></tr>`;
             }
         });
     });
@@ -241,15 +187,12 @@ window.showView = (v) => {
     document.getElementById('calendar-view').style.display = v === 'calendar' ? 'block' : 'none'; 
     document.getElementById('table-view').style.display = v === 'table' ? 'block' : 'none'; 
     document.getElementById('notas-view').style.display = v === 'notas' ? 'block' : 'none'; 
-    if(v === 'table') updateTable();
 };
-
 window.closeModal = () => { document.getElementById('modal').style.display = "none"; };
 document.getElementById('prevMonth').onclick = () => window.mudarMes(-1); document.getElementById('nextMonth').onclick = () => window.mudarMes(1);
 
-
 /* ==========================================================================
-   MÓDULO DE NOTAS: 10 COLUNAS COM TÍTULO E DATA PERSONALIZÁVEIS NA NUVEM
+   DIÁRIO DE NOTAS COM QUANTIDADE DE CAMPOS DINÂMICA (COMEÇA COM 4)
    ========================================================================== */
 
 const listaAlunosPadrao = {
@@ -289,17 +232,17 @@ function renderizarTabelaNotas(turmaKey) {
     titulo.innerText = `Lançamento - ${select.options[select.selectedIndex].text}`;
     container.style.display = 'block';
 
-    // Se a turma estiver completamente vazia na nuvem, faz a carga nominal padrão inicial com 10 colunas
+    // Se a turma estiver vazia na nuvem, inicia por padrão com 4 colunas de notas básicas
     if (!dadosNotasFirebase[turmaKey]) {
         let cargaInicial = { config_colunas: {} };
-        for (let i = 1; i <= 10; i++) {
+        for (let i = 1; i <= 4; i++) {
             cargaInicial.config_colunas[`n${i}`] = { label: `Nota ${i}`, data: "" };
         }
         
         const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
         alunosPadrao.forEach((nomeAluno, index) => {
             const idGerado = `aluno_${Date.now()}_${index}`;
-            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "", n4: "", n5: "", n6: "", n7: "", n8: "", n9: "", n10: "" };
+            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "", n4: "" };
         });
 
         set(ref(db, 'diario_notas/' + turmaKey), cargaInicial);
@@ -308,23 +251,28 @@ function renderizarTabelaNotas(turmaKey) {
 
     const estruturaTurma = dadosNotasFirebase[turmaKey];
     const colunasConfig = estruturaTurma.config_colunas || {};
+    
+    // Mapeia e descobre a quantidade real de chaves de nota criadas nesta turma
+    const chavesColunas = Object.keys(colunasConfig).sort((a,b) => {
+        return parseInt(a.replace('n','')) - parseInt(b.replace('n',''));
+    });
 
-    // 1. MONTAR CABEÇALHO DINÂMICO DE 10 COLUNAS COM INPUTS DE TÍTULO E DATA
-    let htmlHeader = `<th style="padding: 12px; text-align: left; min-width: 220px;">Estudante</th>`;
-    for(let i = 1; i <= 10; i++) {
-        const conf = colunasConfig[`n${i}`] || { label: `Nota ${i}`, data: "" };
+    // 1. CONSTRUÇÃO DO CABEÇALHO DINÂMICO BASEADO NO NÚMERO DE COLUNAS DO BANCO
+    let htmlHeader = `<th style="padding: 12px; text-align: left;">Estudante</th>`;
+    chavesColunas.forEach(key => {
+        const conf = colunasConfig[key] || { label: 'Nota', data: "" };
         htmlHeader += `
             <th style="padding: 10px; text-align: center; width: 95px; background: #34495e;">
-                <input type="text" class="header-input-title" id="head_label_n${i}" value="${conf.label}" placeholder="Avaliação"><br>
-                <input type="text" class="header-input-date" id="head_date_n${i}" value="${conf.data}" placeholder="Data">
+                <input type="text" class="header-input-title" id="head_label_${key}" value="${conf.label}" placeholder="Avaliação"><br>
+                <input type="text" class="header-input-date" id="head_date_${key}" value="${conf.data}" placeholder="Data">
             </th>`;
-    }
+    });
     htmlHeader += `
         <th style="padding: 12px; width: 80px; text-align: center; background: #16a085; color: white;">Média</th>
         <th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
     header.innerHTML = htmlHeader;
 
-    // 2. MONTAR LINHAS DOS ALUNOS
+    // 2. CONSTRUÇÃO DAS LINHAS DE ESTUDANTES
     corpo.innerHTML = "";
     const listaAlunos = Object.keys(estruturaTurma)
         .filter(key => key !== 'config_colunas')
@@ -332,22 +280,22 @@ function renderizarTabelaNotas(turmaKey) {
         .sort((a, b) => a.nome.localeCompare(b.nome));
 
     if (listaAlunos.length === 0) {
-        corpo.innerHTML = `<tr><td colspan="13" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno matriculado.</td></tr>`;
+        corpo.innerHTML = `<tr><td colspan="${chavesColunas.length + 3}" style="padding: 20px; text-align: center; color: #7f8c8d;">Nenhum aluno matriculado.</td></tr>`;
         return;
     }
 
     listaAlunos.forEach(aluno => {
-        let trHtml = `<td style="padding: 12px; font-weight: 500; color: #2c3e50;">${aluno.nome}</td>`;
+        let trHtml = `<td style="padding: 10px; font-weight: 500; color: #2c3e50;">${aluno.nome}</td>`;
         
         let soma = 0;
         let qtdNotasValidas = 0;
 
-        for(let i = 1; i <= 10; i++) {
-            const notaValor = aluno[`n${i}`] || '';
+        chavesColunas.forEach(key => {
+            const notaValor = aluno[key] || '';
             trHtml += `
                 <td style="padding: 6px; text-align: center;">
                     <input type="number" min="0" max="10" step="0.1" class="nota-input-dinamica" 
-                           data-aluno="${aluno.id}" data-nota="n${i}" value="${notaValor}">
+                           data-aluno="${aluno.id}" data-nota="${key}" value="${notaValor}">
                 </td>`;
             
             const num = parseFloat(notaValor);
@@ -355,13 +303,13 @@ function renderizarTabelaNotas(turmaKey) {
                 soma += num;
                 qtdNotasValidas++;
             }
-        }
+        });
 
         let mediaDisplay = qtdNotasValidas > 0 ? (soma / qtdNotasValidas).toFixed(1) : "-";
 
         trHtml += `
-            <td style="padding: 12px; text-align: center; font-weight: bold; background: #fafffd; color: #16a085;" id="media_${aluno.id}">${mediaDisplay}</td>
-            <td style="padding: 12px; text-align: center;">
+            <td style="padding: 10px; text-align: center; font-weight: bold; background: #fafffd; color: #16a085;" id="media_${aluno.id}">${mediaDisplay}</td>
+            <td style="padding: 10px; text-align: center;">
                 <button class="btn-excluir-aluno" data-id="${aluno.id}" style="background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">✕</button>
             </td>`;
 
@@ -371,7 +319,7 @@ function renderizarTabelaNotas(turmaKey) {
         corpo.appendChild(tr);
     });
 
-    // Evento reativo para cálculo da Média em tempo real ao digitar as notas
+    // Monitoramento reativo das médias locais na interface
     corpo.querySelectorAll('.nota-input-dinamica').forEach(input => {
         input.oninput = () => {
             const alunoId = input.getAttribute('data-aluno');
@@ -387,19 +335,45 @@ function renderizarTabelaNotas(turmaKey) {
         };
     });
 
-    // Botão Excluir Aluno individualmente
+    // Exclusão de estudante
     corpo.querySelectorAll('.btn-excluir-aluno').forEach(btn => {
         btn.onclick = () => {
             const idAluno = btn.getAttribute('data-id');
             const nomeAluno = estruturaTurma[idAluno].nome;
             if (confirm(`Remover estudante "${nomeAluno}"?`)) {
-                remove(ref(db, `diario_notas/${turmaKey}/${idAluno}`)).then(() => alert("Removido!"));
+                remove(ref(db, `diario_notas/${turmaKey}/${idAluno}`));
             }
         };
     });
 }
 
-// Inclusão Manual de Aluno na lista
+// Evento para incluir um novo campo de notas customizado (ex: n5, n6...) à sua escolha
+document.getElementById('btnAdicionarColunaNota').onclick = () => {
+    const turmaKey = document.getElementById('selectTurmaNotas').value;
+    if(!turmaKey) return alert("Selecione uma turma primeiro!");
+
+    let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
+    if(!cloneDados.config_colunas) cloneDados.config_colunas = {};
+
+    const numeroProximaColuna = Object.keys(cloneDados.config_colunas).length + 1;
+    const novaChave = `n${numeroProximaColuna}`;
+
+    // Inicializa a nova coluna no cabeçalho
+    cloneDados.config_colunas[novaChave] = { label: `Nota ${numeroProximaColuna}`, data: "" };
+
+    // Inicializa a propriedade vazia para cada aluno existente na turma
+    Object.keys(cloneDados).forEach(idKey => {
+        if(idKey !== 'config_colunas') {
+            cloneDados[idKey][novaChave] = "";
+        }
+    });
+
+    set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => {
+        alert(`Coluna "Nota ${numeroProximaColuna}" incluída com sucesso! Defina o título e salve.`);
+    });
+};
+
+// Inclusão manual de novo estudante
 document.getElementById('btnAdicionarAluno').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     const inputNome = document.getElementById('novoAlunoNome');
@@ -407,16 +381,23 @@ document.getElementById('btnAdicionarAluno').onclick = () => {
 
     if (!turmaKey || !nome) return alert("Selecione a turma e digite o nome!");
 
+    const estruturaTurma = dadosNotasFirebase[turmaKey] || {};
+    const colunasConfig = estruturaTurma.config_colunas || { n1: {}, n2: {}, n3: {}, n4: {} };
+
     const novoId = `aluno_${Date.now()}`;
     let corpoAluno = { nome: nome };
-    for(let i=1; i<=10; i++) corpoAluno[`n${i}`] = "";
+    
+    // Mapeia todas as colunas existentes para criar o aluno alinhado ao diário
+    Object.keys(colunasConfig).forEach(key => {
+        corpoAluno[key] = "";
+    });
 
     set(ref(db, `diario_notas/${turmaKey}/${novoId}`), corpoAluno).then(() => {
         inputNome.value = "";
     });
 };
 
-// Sincronizar Notas + Títulos de Cabeçalho e Datas na Nuvem
+// Salvar Notas, Rótulos e as Datas customizadas atuais na Nuvem
 document.getElementById('btnSalvarNotas').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value;
     if(!turmaKey) return;
@@ -424,14 +405,16 @@ document.getElementById('btnSalvarNotas').onclick = () => {
     let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
     if(!cloneDados.config_colunas) cloneDados.config_colunas = {};
 
-    // Coleta as customizações dos 10 cabeçalhos
-    for(let i = 1; i <= 10; i++) {
-        const lbl = document.getElementById(`head_label_n${i}`).value.trim();
-        const dt = document.getElementById(`head_date_n${i}`).value.trim();
-        cloneDados.config_colunas[`n${i}`] = { label: lbl || `Nota ${i}`, data: dt || "" };
-    }
+    const chavesColunas = Object.keys(cloneDados.config_colunas);
 
-    // Coleta as notas de todos os inputs da tabela
+    // Salva os rótulos alterados do cabeçalho
+    chavesColunas.forEach(key => {
+        const lbl = document.getElementById(`head_label_${key}`).value.trim();
+        const dt = document.getElementById(`head_date_${key}`).value.trim();
+        cloneDados.config_colunas[key] = { label: lbl || `Nota`, data: dt || "" };
+    });
+
+    // Salva as notas de cada aluno
     const inputsNotas = document.getElementById('corpoTabelaNotas').querySelectorAll('.nota-input-dinamica');
     inputsNotas.forEach(input => {
         const alunoId = input.getAttribute('data-aluno');
@@ -444,6 +427,6 @@ document.getElementById('btnSalvarNotas').onclick = () => {
     });
 
     set(ref(db, 'diario_notas/' + turmaKey), cloneDados)
-        .then(() => alert("Diário de notas salvo e sincronizado com sucesso!"))
+        .then(() => alert("Diário de notas salvo com sucesso!"))
         .catch(err => alert("Erro ao sincronizar: " + err.message));
 };
