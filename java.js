@@ -175,11 +175,28 @@ window.saveData = () => {
 window.updateTable = () => {
     const tbody = document.getElementById('tableBody'); if(!tbody) return;
     tbody.innerHTML = "";
+
+    const fData = document.getElementById('searchData').value;
+    const fTurma = document.getElementById('searchTurma').value;
+    const fMateria = document.getElementById('searchMateria').value;
+
     Object.keys(dadosPlanejamento).sort().forEach(date => {
+        if(fData && date !== fData) return;
+
         const dataBR = date.split('-').reverse().join('/');
         dadosPlanejamento[date].forEach(aula => {
             if(aula.conteudo && aula.conteudo.trim() !== "") {
-                tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${aula.anexo || ''}</td></tr>`;
+                if(fTurma && aula.turma !== fTurma) return;
+                if(fMateria && aula.disc !== fMateria) return;
+
+                let anexoCell = "";
+                if(aula.anexo && aula.anexo.trim() !== "") {
+                    let url = aula.anexo.trim();
+                    if(!url.startsWith('http://') && !url.startsWith('https://')) url = 'https://' + url;
+                    anexoCell = `<a href="${url}" target="_blank" class="btn-link">Acessar</a>`;
+                }
+
+                tbody.innerHTML += `<tr><td>${dataBR}</td><td>${aula.turma}</td><td>${aula.disc}</td><td>${aula.conteudo}</td><td>${anexoCell}</td></tr>`;
             }
         });
     });
@@ -212,6 +229,11 @@ const listaAlunosPadrao = {
     "3A_FIN": ["André Gustavo", "Anik", "Anna Izabely", "Cassiano", "Cauã Gabriel", "Cezidio Vicente", "Daniel", "Everton Lucas", "Evilyn Gabrieli", "Flávio", "Gabriel de Méo", "Gabriely Ferreira", "Gladson Cauã", "Gustavo Mendes", "Janaina", "Jennifer Maria", "Julio Cesar", "Maiquel", "Nicole Andrade", "Paulo Guilherme", "Rafael Trindade", "Sabrina", "Bryan"]
 };
 
+// Vinculação do seletor de turmas do Diário de Notas para renderizar ao mudar
+document.getElementById('selectTurmaNotas').onchange = (e) => {
+    renderizarTabelaNotas(e.target.value);
+};
+
 function carregarDadosNotas() {
     onValue(ref(db, 'diario_notas'), (snapshot) => {
         dadosNotasFirebase = snapshot.val() || {};
@@ -234,13 +256,13 @@ function renderizarTabelaNotas(turmaKey) {
 
     if (!dadosNotasFirebase[turmaKey]) {
         let cargaInicial = { config_colunas: {} };
-        for (let i = 1; i <= 4; i++) {
+        for (let i = 1; i <= 3; i++) { // Mantendo os 3 campos básicos de nota inicialmente
             cargaInicial.config_colunas[`n${i}`] = { label: `Nota ${i}`, data: "" };
         }
         const alunosPadrao = listaAlunosPadrao[turmaKey] || [];
         alunosPadrao.forEach((nomeAluno, index) => {
             const idGerado = `aluno_${Date.now()}_${index}`;
-            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "", n4: "" };
+            cargaInicial[idGerado] = { nome: nomeAluno, n1: "", n2: "", n3: "" };
         });
         set(ref(db, 'diario_notas/' + turmaKey), cargaInicial);
         return; 
@@ -254,9 +276,10 @@ function renderizarTabelaNotas(turmaKey) {
     chavesColunas.forEach(key => {
         const conf = colunasConfig[key] || { label: 'Nota', data: "" };
         htmlHeader += `
-            <th style="padding: 10px; text-align: center; width: 95px; background: #34495e;">
+            <th style="padding: 10px; text-align: center; width: 110px; background: #34495e;">
                 <input type="text" class="header-input-title" id="head_label_${key}" value="${conf.label}"><br>
                 <input type="text" class="header-input-date" id="head_date_${key}" value="${conf.data}" placeholder="Data">
+                <button class="btn-del-coluna" onclick="deletarColunaNota('${turmaKey}', '${key}')" style="background:transparent; border:none; color:#e74c3c; cursor:pointer; font-weight:bold; font-size:0.8rem; margin-left:5px;">✕</button>
             </th>`;
     });
     htmlHeader += `<th style="padding: 12px; width: 80px; text-align: center; background: #16a085; color: white;">Média</th><th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
@@ -303,11 +326,28 @@ function renderizarTabelaNotas(turmaKey) {
     });
 }
 
+// Janela global para deletar colunas extras de notas
+window.deletarColunaNota = (turmaKey, colunaKey) => {
+    if(!confirm("Tem certeza que deseja excluir esta coluna de avaliação de forma permanente?")) return;
+    let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey]));
+    if(cloneDados.config_colunas && cloneDados.config_colunas[colunaKey]) {
+        delete cloneDados.config_colunas[colunaKey];
+        Object.keys(cloneDados).forEach(k => { if(k !== 'config_colunas') delete cloneDados[k][colunaKey]; });
+        set(ref(db, 'diario_notas/' + turmaKey), cloneDados);
+    }
+};
+
 document.getElementById('btnAdicionarColunaNota').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value; if(!turmaKey) return;
     let cloneDados = JSON.parse(JSON.stringify(dadosNotasFirebase[turmaKey] || {}));
-    if(!cloneDados.config_colunas) { cloneDados.config_colunas = {}; for(let i=1; i<=4; i++) cloneDados.config_colunas[`n${i}`] = {label:`Nota ${i}`,data:""}; }
-    const num = Object.keys(cloneDados.config_colunas).length + 1; const nk = `n${num}`;
+    if(!cloneDados.config_colunas) { cloneDados.config_colunas = {}; for(let i=1; i<=3; i++) cloneDados.config_colunas[`n${i}`] = {label:`Nota ${i}`,data:""}; }
+    
+    // Obter o maior número de coluna atual para evitar sobreposição
+    const chaves = Object.keys(cloneDados.config_colunas);
+    let maxNum = 0;
+    chaves.forEach(c => { const n = parseInt(c.replace('n','')); if(!isNaN(n) && n > maxNum) maxNum = n; });
+    const num = maxNum + 1; const nk = `n${num}`;
+    
     cloneDados.config_colunas[nk] = { label: `Nota ${num}`, data: "" };
     Object.keys(cloneDados).forEach(k => { if(k !== 'config_colunas') cloneDados[k][nk] = ""; });
     set(ref(db, 'diario_notas/' + turmaKey), cloneDados);
@@ -316,7 +356,7 @@ document.getElementById('btnAdicionarColunaNota').onclick = () => {
 document.getElementById('btnAdicionarAluno').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaNotas').value; const input = document.getElementById('novoAlunoNome'); const nome = input.value.trim();
     if (!turmaKey || !nome) return;
-    const config = dadosNotasFirebase[turmaKey]?.config_colunas || { n1: {}, n2: {}, n3: {}, n4: {} };
+    const config = dadosNotasFirebase[turmaKey]?.config_colunas || { n1: {}, n2: {}, n3: {} };
     const nid = `aluno_${Date.now()}`; let obj = { nome: nome }; Object.keys(config).forEach(k => obj[k] = "");
     set(ref(db, `diario_notas/${turmaKey}/${nid}`), obj).then(() => input.value = "");
 };
@@ -331,11 +371,11 @@ document.getElementById('btnSalvarNotas').onclick = () => {
         const al = inp.getAttribute('data-aluno'); const nt = inp.getAttribute('data-nota');
         if(cloneDados[al]) cloneDados[al][nt] = inp.value.trim();
     });
-    set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => alert("Notas salvas!"));
+    set(ref(db, 'diario_notas/' + turmaKey), cloneDados).then(() => alert("Notas salvas com sucesso!"));
 };
 
 /* ==========================================================================
-   MÓDULO: CADERNO DE VISTOS DIÁRIOS (FEZ / NÃO FEZ / FALTOU)
+   MÓDULO: CADERNO DE VISTOS DIÁRIOS (FEZ / NÃO FEZ / INCOMPLETO / FALTOU)
    ========================================================================== */
 
 function carregarDadosCaderno() {
@@ -384,9 +424,10 @@ function renderizarTabelaCaderno(turmaKey) {
     chavesColunas.forEach(key => {
         const conf = colunasConfig[key] || { label: 'Visto', data: "" };
         htmlHeader += `
-            <th style="padding: 10px; text-align: center; width: 110px; background: #2c3e50;">
+            <th style="padding: 10px; text-align: center; width: 120px; background: #2c3e50;">
                 <input type="text" class="header-input-title" id="cad_label_${key}" value="${conf.label}"><br>
                 <input type="text" class="header-input-date" id="cad_date_${key}" value="${conf.data}" placeholder="Data">
+                <button class="btn-del-coluna" onclick="deletarColunaCaderno('${turmaKey}', '${key}')" style="background:transparent; border:none; color:#e74c3c; cursor:pointer; font-weight:bold; font-size:0.8rem; margin-left:3px;">✕</button>
             </th>`;
     });
     htmlHeader += `<th style="padding: 12px; width: 70px; text-align: center;">Ações</th>`;
@@ -409,6 +450,7 @@ function renderizarTabelaCaderno(turmaKey) {
             
             let classeCor = "select-omissao";
             if (valorAtual === "FEZ") classeCor = "select-fez";
+            if (valorAtual === "INCOMPLETO") classeCor = "select-incompleto";
             if (valorAtual === "NÃO FEZ") classeCor = "select-nao-fez";
             if (valorAtual === "FALTOU") classeCor = "select-faltou";
 
@@ -417,6 +459,7 @@ function renderizarTabelaCaderno(turmaKey) {
                     <select class="caderno-select-input ${classeCor}" data-aluno="${aluno.id}" data-visto="${key}">
                         <option value="" ${valorAtual === '' ? 'selected' : ''}>-</option>
                         <option value="FEZ" ${valorAtual === 'FEZ' ? 'selected' : ''}>FEZ</option>
+                        <option value="INCOMPLETO" ${valorAtual === 'INCOMPLETO' ? 'selected' : ''}>INCOMPLETO</option>
                         <option value="NÃO FEZ" ${valorAtual === 'NÃO FEZ' ? 'selected' : ''}>NÃO FEZ</option>
                         <option value="FALTOU" ${valorAtual === 'FALTOU' ? 'selected' : ''}>FALTOU</option>
                     </select>
@@ -431,6 +474,7 @@ function renderizarTabelaCaderno(turmaKey) {
         selectInp.onchange = () => {
             selectInp.className = "caderno-select-input"; 
             if (selectInp.value === "FEZ") selectInp.classList.add("select-fez");
+            if (selectInp.value === "INCOMPLETO") selectInp.classList.add("select-incompleto");
             if (selectInp.value === "NÃO FEZ") selectInp.classList.add("select-nao-fez");
             if (selectInp.value === "FALTOU") selectInp.classList.add("select-faltou");
         };
@@ -440,6 +484,16 @@ function renderizarTabelaCaderno(turmaKey) {
         btn.onclick = () => { if (confirm("Remover estudante do caderno?")) remove(ref(db, `diario_caderno/${turmaKey}/${btn.getAttribute('data-id')}`)); };
     });
 }
+
+window.deletarColunaCaderno = (turmaKey, colunaKey) => {
+    if(!confirm("Remover esta coluna de visto definitivamente?")) return;
+    let cloneDados = JSON.parse(JSON.stringify(dadosCadernoFirebase[turmaKey]));
+    if(cloneDados.config_colunas && cloneDados.config_colunas[colunaKey]) {
+        delete cloneDados.config_colunas[colunaKey];
+        Object.keys(cloneDados).forEach(k => { if(k !== 'config_colunas') delete cloneDados[k][colunaKey]; });
+        set(ref(db, 'diario_caderno/' + turmaKey), cloneDados);
+    }
+};
 
 document.getElementById('btnAdicionarColunaCaderno').onclick = () => {
     const turmaKey = document.getElementById('selectTurmaCaderno').value; if(!turmaKey) return alert("Selecione uma turma primeiro!");
@@ -451,7 +505,10 @@ document.getElementById('btnAdicionarColunaCaderno').onclick = () => {
         for(let i = 1; i <= 4; i++) cloneDados.config_colunas[`v${i}`] = { label: `Visto ${i}`, data: "" };
     }
 
-    const num = Object.keys(cloneDados.config_colunas).length + 1;
+    const chaves = Object.keys(cloneDados.config_colunas);
+    let maxNum = 0;
+    chaves.forEach(c => { const n = parseInt(c.replace('v','')); if(!isNaN(n) && n > maxNum) maxNum = n; });
+    const num = maxNum + 1;
     const novaChave = `v${num}`;
 
     cloneDados.config_colunas[novaChave] = { label: `Visto ${num}`, data: "" };
