@@ -65,7 +65,8 @@ nav button:hover { background: #415b76; }
 table { width: 100%; border-collapse: collapse; min-width: 600px; }
 th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
 th { background: #f8f9fa; color: #333; }
-.btn-link { display: inline-block; padding: 6px 12px; background-color: var(--blue); color: white; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-align: center; }
+.btn-link { display: inline-block; padding: 6px 12px; background-color: var(--blue); color: white; text-decoration: none; border-radius: 4px; font-size: 0.8rem; font-weight: bold; text-align: center; border: none; cursor: pointer; }
+.btn-link:hover { background-color: #2980b9; }
 
 /* MODAL INTERNO */
 .modal { display: none; position: fixed; top:0; left:0; width: 100%; height:100%; background: rgba(0,0,0,0.7); z-index: 100; }
@@ -80,11 +81,11 @@ footer { text-align: center; padding: 12px; background: var(--dark); color: whit
 
 /* FORMATAÇÃO DOS INPUTS DE NOTA DINÂMICOS COMPACTOS */
 .header-input-title {
-    width: 75px; padding: 4px; font-size: 0.72rem; border: 1px solid #4f6f8f;
+    width: 80px; padding: 4px; font-size: 0.72rem; border: 1px solid #4f6f8f;
     border-radius: 3px; text-align: center; font-weight: bold; background: #ffffff; color: #333; margin-bottom: 4px;
 }
 .header-input-date {
-    width: 75px; padding: 3px; font-size: 0.68rem; border: 1px solid #4f6f8f;
+    width: 80px; padding: 3px; font-size: 0.68rem; border: 1px solid #4f6f8f;
     border-radius: 3px; text-align: center; background: #ecf0f1; color: #333;
 }
 .nota-input-dinamica {
@@ -96,11 +97,12 @@ footer { text-align: center; padding: 12px; background: var(--dark); color: whit
     background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-size: 0.85rem;
 }
 
-/* NOVO: ESTILOS DE COR DE RESPOSTA VISUAL PARA OS SELECTS DO CADERNO */
+/* ESTILOS DE COR DE RESPOSTA VISUAL PARA OS SELECTS DO CADERNO */
 .caderno-select-input {
-    width: 90px; padding: 6px; font-weight: bold; border-radius: 4px; text-align: center; border: 1px solid #ccc; cursor: pointer;
+    width: 105px; padding: 6px; font-weight: bold; border-radius: 4px; text-align: center; border: 1px solid #ccc; cursor: pointer;
 }
 .select-omissao { background-color: #ffffff; color: #333; }
 .select-fez { background-color: #2ecc71 !important; color: white !important; }
+.select-incompleto { background-color: #f39c12 !important; color: white !important; }
 .select-nao-fez { background-color: #e74c3c !important; color: white !important; }
 .select-faltou { background-color: #95a5a6 !important; color: white !important; }
