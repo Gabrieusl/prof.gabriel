@@ -74,7 +74,7 @@ const gradeFixa = {
 };
 
 const feriados2026 = {
-   "2026-05-19": "Prova Paraná","2026-05-20": "Prova Paraná", "2026-01-01": "Ano Novo", "2026-04-03": "Paixão de Cristo", "2026-04-05": "Páscoa", "2026-04-21": "Tiradentes", "2026-05-01": "Dia do Trabalho", "2026-06-04": "Corpus Christi", "2026-06-05": "Recesso Escolar", "2026-09-07": "Independência", "2026-10-12": "N. Sra Aparecida", "2026-10-13": "Recesso Escolar", "2026-11-02": "Finados", "2026-11-15": "Proclamação", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal"
+     "2026-07-24": "Estudo e Planejamento", "2026-07-23": "Estudo e Planejamento", "2026-07-22": "Férias🥳", "2026-07-21": "Férias🥳",  "2026-07-20": "Férias🥳", "2026-07-17": "Férias🥳","2026-07-16": "Férias🥳","2026-07-15": "Férias🥳", "2026-07-14": "Férias🥳", "2026-07-13": "Férias🥳", "2026-05-19": "Prova Paraná","2026-05-20": "Prova Paraná", "2026-01-01": "Ano Novo", "2026-04-03": "Paixão de Cristo", "2026-04-05": "Páscoa", "2026-04-21": "Tiradentes", "2026-05-01": "Dia do Trabalho", "2026-06-04": "Corpus Christi", "2026-06-05": "Recesso Escolar", "2026-09-07": "Independência", "2026-10-12": "N. Sra Aparecida", "2026-10-13": "Recesso Escolar", "2026-11-02": "Finados", "2026-11-15": "Proclamação", "2026-11-20": "Consciência Negra", "2026-12-25": "Natal"
 };
 
 let dadosPlanejamento = {};
