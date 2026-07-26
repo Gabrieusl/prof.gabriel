@@ -56,14 +56,14 @@ const gradeFixa = {
         { turma: "7º ano", disc: "Matemática" }, { turma: "6º ano", disc: "Matemática" }, 
         { turma: "8º ano", disc: "Matemática" }, { turma: "8º ano", disc: "Matemática" }
     ],
-    "Ter": [{ turma: "3ª série", disc: "Ed. Financeira" }],
+    "Ter": [],
     "Qua": [
         { turma: "9º ano", disc: "Recomposição" }, { turma: "9º ano", disc: "Recomposição" }, 
         { turma: "1ª série", disc: "Matemática" }, { turma: "1ª série", disc: "Matemática" }, 
         { turma: "7º ano", disc: "Matemática" }, { turma: "7º ano", disc: "Matemática" }, 
         { turma: "6º ano", disc: "Recomposição" }, { turma: "6º ano", disc: "Recomposição" }
     ],
-    "Qui": [{ turma: "6º ano", disc: "Matemática" }],
+    "Qui": [{ turma: "3ª série", disc: "Ed. Financeira" }, { turma: "6º ano", disc: "Matemática" }],
     "Sex": [
         { turma: "3ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Financeira" }, 
         { turma: "1ª série", disc: "Ed. Financeira" }, { turma: "1ª série", disc: "Ed. Digital" }, 
