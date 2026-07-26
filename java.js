@@ -137,7 +137,11 @@ function renderCalendar() {
         const diaData = new Date(dataFormatada + "T12:00:00");
         let diaSemana = diaData.toLocaleString('pt-br', { weekday: 'short' }).replace('.','');
         diaSemana = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1).toLowerCase();
-        let isWeekend = (diaData.getDay() === 0 || diaData.getDay() === 6);
+        let isWeekend = (
+    diaData.getDay() === 0 || // Domingo
+    diaData.getDay() === 2 || // Terça
+    diaData.getDay() === 6    // Sábado
+);
         let holidayName = feriados2026[dataFormatada];
         let status = isWeekend ? "status-weekend" : "status-empty";
         let contentInside = `<span>${diaSemana}</span>`;
