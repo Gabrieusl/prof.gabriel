@@ -163,7 +163,14 @@ window.openDay = (date, dia) => {
     const container = document.getElementById('classInputs'); container.innerHTML = "";
     let aulas = dadosPlanejamento[date] || (gradeFixa[dia] || []).map(g => ({...g, conteudo: "", anexo: ""}));
     aulas.forEach((aula, i) => {
-        container.innerHTML += `<div class="class-edit-row"><strong>${aula.turma} - ${aula.disc}</strong><input type="text" id="c_${i}" value="${aula.conteudo || ''}"><input type="text" id="a_${i}" value="${aula.anexo || ''}"></div>`;
+    container.innerHTML += `
+<div class="class-edit-row">
+    <strong>${aula.turma} - ${aula.disc}</strong>
+
+    <textarea id="c_${i}" rows="5">${aula.conteudo || ''}</textarea>
+
+    <input type="text" id="a_${i}" value="${aula.anexo || ''}">
+</div>`;
     });
     document.getElementById('modal').style.display = "block";
 };
