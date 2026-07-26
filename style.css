@@ -73,6 +73,18 @@ th { background: #f8f9fa; color: #333; }
 .modal-content { background: white; margin: 2% auto; padding: 25px; width: 92%; max-width: 1200px; border-radius: 12px; max-height: 90vh; overflow-y: auto; }
 #classInputs { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; margin: 15px 0; }
 .class-edit-row { background: #f9f9f9; padding: 12px; border-radius: 8px; border-top: 4px solid var(--dark); }
+.class-edit-row textarea {
+    width: 100%;
+    box-sizing: border-box;
+    margin-top: 6px;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    min-height: 120px;
+    resize: vertical;
+    font-family: inherit;
+    font-size: inherit;
+}
 .class-edit-row input { width: 100%; box-sizing: border-box; margin-top: 6px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
 .modal-buttons { display: flex; justify-content: flex-end; gap: 15px; border-top: 1px solid #eee; padding-top: 15px; }
 .save-btn { background: var(--green); color: white; border: none; padding: 10px 25px; border-radius: 5px; cursor: pointer; font-weight: bold; }
